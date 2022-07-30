@@ -9,4 +9,7 @@
 #define F_CPU 8000000UL
 #endif // F_CPU
 
+// configure USART baud rate.
+#define USART_BAUD 9600
+
 #endif // CONFIG_H_
