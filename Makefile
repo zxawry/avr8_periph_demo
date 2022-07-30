@@ -1,7 +1,7 @@
 # project configurations
 PRG   = demo
-MCU   = atmega328p
-F_CPU = 8000000UL
+MCU   = atmega8a
+F_CPU = 11059200UL
 C_STD = c99
 OPT   = s
 DBG   = 3
@@ -12,6 +12,9 @@ INCDIR = inc
 
 # source files and directories
 SRC  = src/main.c
+SRC += src/usart.c
+SRC += src/serio.c
+SRC += src/queue.c
 
 # object files and directories
 OBJ    = 
@@ -43,7 +46,7 @@ LD_FLAGS += -Wl,-Map=$(PRG).map
 AVRDUDE = avrdude
 
 # programmer options
-AVRDUDE_PARTNO     = m328p
+AVRDUDE_PARTNO     = m8
 AVRDUDE_PROGRAMMER = ponyser
 AVRDUDE_PORT       = /dev/ttyS0
 AVRDUDE_FLAGS     := -p $(AVRDUDE_PARTNO) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
