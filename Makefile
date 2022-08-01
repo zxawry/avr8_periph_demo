@@ -72,7 +72,6 @@ OBJ += $(addsuffix .o, $(basename $(SRC)))
 OBJ := $(addprefix $(patsubst %/,%,$(OBJDIR))/, $(notdir $(OBJ)))
 
 # create the output object file directory
-$(shell mkdir -p $(OBJDIR) 2> /dev/null)
 VPATH += $(dir $(SRC))
 
 # create a list of dependency files
@@ -92,17 +91,21 @@ MSG_OBJDMP_CMD  := ' [OBJDMP]  :'
 MSG_AVRDUDE_CMD := ' [AVRDUDE] :'
 
 # perform a complete build of the user application
-all: xheader elf hex bin lss sym size xfooter
+all: header ready elf hex bin lss sym size footer
 
 # print compiler and project name information when building
-xheader:
+header:
 	@echo $(MSG_INFO_TXT) Begin compilation of project \"$(PRG)\"...
 	@echo ""
 	@$(CC) --version
 
 # print project name information when building has completed
-xfooter:
+footer:
 	@echo $(MSG_INFO_TXT) Finished building project \"$(PRG)\".
+
+# create objects directory if non-existent
+ready:
+	@$(shell mkdir -p $(OBJDIR) 2> /dev/null)
 
 # print size information of a compiled application
 size: $(PRG).elf
@@ -200,7 +203,7 @@ program-ee: $(PRG).eep $(MAKEFILE_LIST)
 	@echo $(MSG_AVRDUDE_CMD) Programming device \"$(AVRDUDE_PARTNO)\" EEPROM using \"$(AVRDUDE_PROGRAMMER)\" on port \"$(AVRDUDE_PORT)\"
 	$(AVRDUDE) $(AVRDUDE_FLAGS) -U eeprom:w:$<
 
-BUILD_TARGETS  = xheader xfooter size symbol-sizes all elf bin hex lss clean mostlyclean
+BUILD_TARGETS  = header footer size symbol-sizes all elf bin hex lss clean mostlyclean
 BUILD_TARGETS += program program-ee
 
 # phony build targets for this module
