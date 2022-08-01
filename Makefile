@@ -15,6 +15,7 @@ SRC  = src/main.c
 SRC += src/usart.c
 SRC += src/serio.c
 SRC += src/queue.c
+SRCDIR = src
 
 # object files and directories
 OBJ    = 
@@ -72,7 +73,6 @@ OBJ += $(addsuffix .o, $(basename $(SRC)))
 OBJ := $(addprefix $(patsubst %/,%,$(OBJDIR))/, $(notdir $(OBJ)))
 
 # create the output object file directory
-$(shell mkdir -p $(OBJDIR) 2> /dev/null)
 VPATH += $(dir $(SRC))
 
 # create a list of dependency files
@@ -87,21 +87,22 @@ MSG_RM_CMD      := ' [RM]      :'
 MSG_LD_CMD      := ' [LD]      :'
 MSG_AR_CMD      := ' [AR]      :'
 MSG_SIZE_CMD    := ' [SIZE]    :'
+MSG_INDENT_CMD  := ' [INDENT]  :'
 MSG_OBJCPY_CMD  := ' [OBJCPY]  :'
 MSG_OBJDMP_CMD  := ' [OBJDMP]  :'
 MSG_AVRDUDE_CMD := ' [AVRDUDE] :'
 
 # perform a complete build of the user application
-all: xheader elf hex bin lss sym size xfooter
+all: header elf hex bin lss sym size footer
 
 # print compiler and project name information when building
-xheader:
+header:
 	@echo $(MSG_INFO_TXT) Begin compilation of project \"$(PRG)\"...
 	@echo ""
 	@$(CC) --version
 
 # print project name information when building has completed
-xfooter:
+footer:
 	@echo $(MSG_INFO_TXT) Finished building project \"$(PRG)\".
 
 # print size information of a compiled application
@@ -126,6 +127,12 @@ mostlyclean:
 clean: mostlyclean
 	@echo $(MSG_RM_CMD) Removing output files of \"$(PRG)\"
 	rm -f $(PRG).elf $(PRG).hex $(PRG).bin $(PRG).eep $(PRG).map $(PRG).lss $(PRG).sym lib$(PRG).a
+
+# force coding styles on source code files
+indent:
+	@echo $(MSG_INDENT_CMD) Indenting source files of \"$(PRG)\"
+	$(INDENT) $(INDENT_FLAGS) $(SRCDIR)/*.c $(INCDIR)/*.h
+	@rm -f $(SRCDIR)/*.c~ $(INCDIR)/*.h~
 
 # helper targets, to build a specific type of output file
 elf: $(PRG).elf
@@ -188,7 +195,7 @@ $(OBJDIR)/%.o: %.S $(MAKEFILE_LIST)
 	$(NM) -n $< > $@
 
 # include build dependency files
--include $(DEP)
+-include $(shell mkdir -p $(OBJDIR) 2>/dev/null) $(DEP)
 
 # program in the target FLASH memory using AVRDUDE
 program: $(PRG).hex $(MAKEFILE_LIST)
@@ -200,7 +207,7 @@ program-ee: $(PRG).eep $(MAKEFILE_LIST)
 	@echo $(MSG_AVRDUDE_CMD) Programming device \"$(AVRDUDE_PARTNO)\" EEPROM using \"$(AVRDUDE_PROGRAMMER)\" on port \"$(AVRDUDE_PORT)\"
 	$(AVRDUDE) $(AVRDUDE_FLAGS) -U eeprom:w:$<
 
-BUILD_TARGETS  = xheader xfooter size symbol-sizes all elf bin hex lss clean mostlyclean
+BUILD_TARGETS  = header footer size symbol-sizes all elf bin hex lss clean mostlyclean
 BUILD_TARGETS += program program-ee
 
 # phony build targets for this module
