@@ -13,4 +13,4 @@ int usart_putc(char data);
 // receive one byte of data from the USART RX line.
 int usart_getc(void);
 
-#endif // USART_H_
+#endif				// USART_H_

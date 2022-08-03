@@ -15,6 +15,8 @@ SRC  = src/main.c
 SRC += src/usart.c
 SRC += src/serio.c
 SRC += src/queue.c
+SRC += src/twi.c
+SRCDIR = src
 
 # object files and directories
 OBJ    = 
@@ -86,12 +88,13 @@ MSG_RM_CMD      := ' [RM]      :'
 MSG_LD_CMD      := ' [LD]      :'
 MSG_AR_CMD      := ' [AR]      :'
 MSG_SIZE_CMD    := ' [SIZE]    :'
+MSG_INDENT_CMD  := ' [INDENT]  :'
 MSG_OBJCPY_CMD  := ' [OBJCPY]  :'
 MSG_OBJDMP_CMD  := ' [OBJDMP]  :'
 MSG_AVRDUDE_CMD := ' [AVRDUDE] :'
 
 # perform a complete build of the user application
-all: header ready elf hex bin lss sym size footer
+all: header elf hex bin lss sym size footer
 
 # print compiler and project name information when building
 header:
@@ -102,10 +105,6 @@ header:
 # print project name information when building has completed
 footer:
 	@echo $(MSG_INFO_TXT) Finished building project \"$(PRG)\".
-
-# create objects directory if non-existent
-ready:
-	@$(shell mkdir -p $(OBJDIR) 2> /dev/null)
 
 # print size information of a compiled application
 size: $(PRG).elf
@@ -129,6 +128,12 @@ mostlyclean:
 clean: mostlyclean
 	@echo $(MSG_RM_CMD) Removing output files of \"$(PRG)\"
 	rm -f $(PRG).elf $(PRG).hex $(PRG).bin $(PRG).eep $(PRG).map $(PRG).lss $(PRG).sym lib$(PRG).a
+
+# force coding styles on source code files
+indent:
+	@echo $(MSG_INDENT_CMD) Indenting source files of \"$(PRG)\"
+	$(INDENT) $(INDENT_FLAGS) $(SRCDIR)/*.c $(INCDIR)/*.h
+	@rm -f $(SRCDIR)/*.c~ $(INCDIR)/*.h~
 
 # helper targets, to build a specific type of output file
 elf: $(PRG).elf
@@ -191,7 +196,7 @@ $(OBJDIR)/%.o: %.S $(MAKEFILE_LIST)
 	$(NM) -n $< > $@
 
 # include build dependency files
--include $(DEP)
+-include $(shell mkdir -p $(OBJDIR) 2>/dev/null) $(DEP)
 
 # program in the target FLASH memory using AVRDUDE
 program: $(PRG).hex $(MAKEFILE_LIST)

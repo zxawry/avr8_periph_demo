@@ -5,6 +5,31 @@
 
 #include "usart.h"
 
+#define S(b) (b >> 4)
+#define M(b) (b & 0x0F)
+#define C(b) ((b > 9) ? (b + 0x57) : (b + 0x30))
+#define L(b) C(M(b))
+#define H(b) C(M(S(b)))
+
+void put_dump(uint8_t * b, uint8_t n)
+{
+	uint8_t i = 0, e;
+	while (n > 0) {
+		xputc('0');
+		xputc('x');
+		xputc(H(i));
+		xputc(L(i));
+		xputc('\t');
+		e = (n < 16) ? n : 16;
+		for (; e > 0; e--, i++, n--) {
+			xputc(H(b[i]));
+			xputc(L(b[i]));
+			xputc(' ');
+		}
+		xputc('\n');
+	}
+}
+
 int xputc(char c)
 {
 	if (c == '\a')
@@ -69,24 +94,5 @@ int xgets(char *b, int n)
 	}
 
 	b[i] = '\0';
-	return (int) (c == '\n');
-}
-
-void put_dump(const char * input)
-{
-	char c, h, l;
-	xputc('[');
-	xputc(' ');
-	while (*input) {
-		c = *input++;
-		h = (c & 0xF0) >> 4;
-		if (h > 9) h += 0x27;
-		l = c & 0x0F;
-		if (l > 9) l += 0x27;
-		xputc(h + '0');
-		xputc(l + '0');
-		xputc(' ');
-	}
-	xputc(']');
-	xputc('\n');
+	return (int)(c == '\n');
 }
