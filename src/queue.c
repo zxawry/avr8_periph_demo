@@ -10,7 +10,7 @@ void queue_init(queue_t * queue)
 	queue->head = 0;
 	queue->size = 0;
 
-	// maybe not needed, since the compiler already initiates bss
+	// this can be omitted if every queue is initiated only once
 	uint8_t i = 0;
 	while (i < QUEUE_SIZE)
 		queue->data[i++] = '\0';

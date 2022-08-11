@@ -11,5 +11,6 @@ int xgetc(void);
 int xputs(const char *s);
 int xgets(char *b, int n);
 void put_dump(uint8_t * b, uint8_t n);
+void put_dump_null(uint8_t * b, uint8_t n);
 
 #endif				// SERIO_H_

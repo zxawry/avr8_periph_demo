@@ -20,7 +20,7 @@ void put_dump(uint8_t * b, uint8_t n)
 		xputc(H(i));
 		xputc(L(i));
 		xputc('\t');
-		e = (n < 16) ? n : 16;
+		e = (n < 8) ? n : 8;
 		for (; e > 0; e--, i++, n--) {
 			xputc(H(b[i]));
 			xputc(L(b[i]));
@@ -29,6 +29,28 @@ void put_dump(uint8_t * b, uint8_t n)
 		xputc('\n');
 	}
 }
+
+void put_dump_null(uint8_t * b, uint8_t n)
+{
+	uint8_t i = 0, e;
+	while (n > 0 && b[i] != 0) {
+		xputc('0');
+		xputc('x');
+		xputc(H(i));
+		xputc(L(i));
+		xputc('\t');
+		e = (n < 8) ? n : 8;
+		for (; e > 0; e--, i++, n--) {
+			if (b[i] == 0)
+				break;
+			xputc(H(b[i]));
+			xputc(L(b[i]));
+			xputc(' ');
+		}
+		xputc('\n');
+	}
+}
+
 
 int xputc(char c)
 {
