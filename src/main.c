@@ -9,7 +9,12 @@
 #include "serio.h"
 #include "twi.h"
 
-inline void periph_init(void);
+inline void periph_init(void) __attribute__((always_inline));
+
+#define DEV_TWI_ADDR	(0xd0)
+
+void chip_write_bytes(uint8_t addr, uint8_t * buf, uint8_t len);
+void chip_read_bytes(uint8_t addr, uint8_t * buf, uint8_t len);
 
 inline void periph_init(void)
 {
@@ -19,12 +24,38 @@ inline void periph_init(void)
 	sei();
 }
 
+// TODO: INCOMPLETE
+void chip_write_bytes(uint8_t addr, uint8_t * buf, uint8_t len)
+{
+	uint8_t i;
+	for (i = len; i > 0; i--)
+		buf[i] = buf[i - 1];
+	buf[0] = addr;
+
+	xputs("data to be written\n");
+	put_dump(buf, len + 1);
+
+	twi_wait();
+	twi_write(DEV_TWI_ADDR, buf, len + 1, 0);
+	twi_wait();
+}
+
+void chip_read_bytes(uint8_t addr, uint8_t * buf, uint8_t len)
+{
+	twi_wait();
+	twi_write(DEV_TWI_ADDR, &addr, 1, 1);
+	twi_wait();
+	twi_read(DEV_TWI_ADDR, buf, len, 0);
+	twi_wait();
+}
+
 int main(void)
 {
 	periph_init();
 
 			//  addr  secs  mins  hour  days  date  mont  year  cntl
-        uint8_t tmp[65] = { 0x00,
+        //uint8_t tmp[65] = { 0x00,
+        uint8_t tmp[64] = {
 				  0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x10,
 				  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
 				  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -32,7 +63,7 @@ int main(void)
 				  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
 				  0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 				  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-				  0x38, 0x09, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
+				  0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
 			  };
 
 	char buffer[128];
@@ -41,8 +72,7 @@ int main(void)
 	xputs("process started...\n");
 
 	xputs("setting up device\n");
-	twi_write(0xd0, tmp, 65, 0);
-	twi_wait();
+	chip_write_bytes(0x00, tmp, 64);
 	//put_dump((uint8_t *)_debug_buffer.data, QUEUE_SIZE);
 
 	//xputs("reset device counter\n");

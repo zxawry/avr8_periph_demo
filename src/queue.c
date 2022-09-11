@@ -15,3 +15,20 @@ void queue_init(queue_t * queue)
 	while (i < QUEUE_SIZE)
 		queue->data[i++] = '\0';
 }
+
+// append an item to the tail of the queue.
+void queue_enqueue(queue_t * queue, const char item)
+{
+	queue->tail = (queue->tail + 1) % QUEUE_SIZE;
+	queue->data[queue->tail] = item;
+	queue->size++;
+}
+
+// remove an item from the head of the queue.
+char queue_dequeue(queue_t * queue)
+{
+	char item = queue->data[queue->head];
+	queue->head = (queue->head + 1) % QUEUE_SIZE;
+	queue->size--;
+	return item;
+}

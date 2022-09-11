@@ -43,32 +43,32 @@ uint8_t twi_wait(void)
 	//return twsr & ~_BV(3);
 }
 
-void twi_start(void)
+static inline void twi_start(void)
 {
 	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE) | _BV(TWSTA);
 }
 
-void twi_stop(void)
+static inline void twi_stop(void)
 {
 	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWSTO);
 }
 
-void twi_ack(void)
+static inline void twi_ack(void)
 {
 	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE) | _BV(TWEA);
 }
 
-void twi_nack(void)
+static inline void twi_nack(void)
 {
 	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE);
 }
 
-void twi_send(uint8_t data)
+static inline void twi_send(uint8_t data)
 {
 	TWDR = data;
 }
 
-void twi_recv(void)
+static inline void twi_recv(void)
 {
 	connection.buffer[connection.index++] = TWDR;
 }
@@ -84,7 +84,7 @@ void twi_reply(void)
 }
 */
 
-void twi_done(void)
+static void twi_done(void)
 {
 	busy = 0;
 	twsr |= _BV(3);
