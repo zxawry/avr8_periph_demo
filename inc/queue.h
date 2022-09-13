@@ -21,16 +21,20 @@ typedef struct {
 void queue_init(queue_t * queue);
 
 // check if the queue is empty.
-inline char queue_is_empty(queue_t * queue) __attribute__((always_inline));
+__attribute__((always_inline))
+inline char queue_is_empty(queue_t * queue);
 
 // check if the queue is full.
-inline char queue_is_full(queue_t * queue) __attribute__((always_inline));
+__attribute__((always_inline))
+inline char queue_is_full(queue_t * queue);
 
 // append an item to the tail of the queue.
-inline void queue_enqueue(queue_t * queue, const char item) __attribute__((always_inline));
+__attribute__((always_inline))
+inline void queue_enqueue(queue_t * queue, const char item);
 
 // remove an item from the head of the queue.
-inline char queue_dequeue(queue_t * queue) __attribute__((always_inline));
+__attribute__((always_inline))
+inline char queue_dequeue(queue_t * queue);
 
 // check if the queue is empty.
 inline char queue_is_empty(queue_t * queue)

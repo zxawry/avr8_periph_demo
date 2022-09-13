@@ -20,7 +20,8 @@ static inline void periph_init(void)
 	sei();
 }
 
-static uint8_t conv_hex_to_dec(const char hex) {
+static uint8_t conv_hex_to_dec(const char hex)
+{
 	uint8_t dec = 0;
 
 	if (hex >= '0' && hex <= '9')
@@ -39,23 +40,25 @@ int main(void)
 
 	uint8_t tx_data[16] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, };
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+	};
 
 	uint8_t rx_data[16] = {
 		0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
-		0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff, };
+		0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
+	};
 
 	xputs("process started...\n");
 
-	//twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
+	twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
 	xputs("set device address pointer to 0x0000\n");
-	//twi_write_bytes(0x50, tx_data, 16, TWI_NOSTART);
+	twi_write_bytes(0x50, tx_data, 16, TWI_NOSTART);
 	xputs("wrote 16 bytes to eeprom device\n");
 	put_dump(tx_data, 16);
 
-	//twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
+	twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
 	xputs("set device address pointer to 0x0000\n");
-	//twi_read_bytes(0x50, rx_data, 16, 0x00);
+	twi_read_bytes(0x50, rx_data, 16, 0x00);
 	xputs("read 16 bytes from eeprom device\n");
 	put_dump(rx_data, 16);
 
