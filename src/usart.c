@@ -5,6 +5,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <util/atomic.h>
 
 #include "usart.h"
 #include "queue.h"
@@ -43,7 +44,10 @@ int usart_putc(char data)
 	if (queue_is_full(&_usart_tx_buffer))
 		return -1;
 
-	queue_enqueue(&_usart_tx_buffer, data);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		queue_enqueue(&_usart_tx_buffer, data);
+	}
+
 	UCSRB |= _BV(UDRIE);
 
 	return 0;
@@ -54,7 +58,11 @@ int usart_getc(void)
 	if (queue_is_empty(&_usart_rx_buffer))
 		return -1;
 
-	char data = queue_dequeue(&_usart_rx_buffer);
+	char data;
+
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		data = queue_dequeue(&_usart_rx_buffer);
+	}
 
 	return (int)data;
 }
