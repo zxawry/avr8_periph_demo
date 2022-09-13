@@ -9,9 +9,10 @@
 #include "serio.h"
 #include "twi.h"
 
-inline void periph_init(void);
+static inline void periph_init(void);
+static uint8_t conv_hex_to_dec(const char hex);
 
-inline void periph_init(void)
+static inline void periph_init(void)
 {
 	cli();
 	usart_init();
@@ -19,58 +20,59 @@ inline void periph_init(void)
 	sei();
 }
 
+static uint8_t conv_hex_to_dec(const char hex) {
+	uint8_t dec = 0;
+
+	if (hex >= '0' && hex <= '9')
+		dec = hex - '0';
+	else if (hex >= 'a' && hex <= 'f')
+		dec = hex - 'a' + 10;
+
+	return dec;
+}
+
 int main(void)
 {
 	periph_init();
 
-			//  addr  secs  mins  hour  days  date  mont  year  cntl
-        uint8_t tmp[65] = { 0x00,
-				  0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x00, 0x10,
-				  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-				  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-				  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-				  0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
-				  0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-				  0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
-				  0x38, 0x09, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-			  };
-
 	char buffer[128];
-	uint8_t data[128];
+
+	uint8_t tx_data[16] = {
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, };
+
+	uint8_t rx_data[16] = {
+		0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+		0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff, };
 
 	xputs("process started...\n");
 
-	xputs("setting up device\n");
-	twi_write(0xd0, tmp, 65, 0);
-	twi_wait();
-	//put_dump((uint8_t *)_debug_buffer.data, QUEUE_SIZE);
+	//twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
+	xputs("set device address pointer to 0x0000\n");
+	//twi_write_bytes(0x50, tx_data, 16, TWI_NOSTART);
+	xputs("wrote 16 bytes to eeprom device\n");
+	put_dump(tx_data, 16);
 
-	//xputs("reset device counter\n");
-	//twi_write(0xd0, dummy, 1, 0);
-	twi_write(0xd0, (uint8_t *) "\08" , 1, 0);
-	twi_wait();
-	put_dump_null((uint8_t *)_debug_buffer.data, QUEUE_SIZE);
+	//twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
+	xputs("set device address pointer to 0x0000\n");
+	//twi_read_bytes(0x50, rx_data, 16, 0x00);
+	xputs("read 16 bytes from eeprom device\n");
+	put_dump(rx_data, 16);
 
-	//xputs("read from device\n");
-	//twi_read(0xd0, data, 56, 0);
-	//twi_wait();
-	//put_dump_null((uint8_t *)_debug_buffer.data, QUEUE_SIZE);
-	//put_dump(data, 56);
+	uint8_t mem_addr[2] = { 0, 0, };
 
 	for (;;) {
 		xputs("$ ");
 		if (xgets(buffer, 128)) {
 			if (buffer[0] != '\n') {
-				//xputs(buffer);
-				xputs("read from device\n");
-				uint8_t i;
-				uint8_t * p = data;
-				for (i = 0; i < 64; i++) {
-					twi_read(0xd0, p++, 1, 0);
-					twi_wait();
-					//put_dump_null((uint8_t *)_debug_buffer.data, QUEUE_SIZE);
-				}
-				put_dump(data, 64);
+				mem_addr[0] = conv_hex_to_dec(buffer[0]) << 4;
+				mem_addr[0] += conv_hex_to_dec(buffer[1]);
+				mem_addr[1] = conv_hex_to_dec(buffer[2]) << 4;
+				mem_addr[1] += conv_hex_to_dec(buffer[3]);
+				twi_write_bytes(0x50, mem_addr, 2, TWI_NOSTOP);
+				put_dump(mem_addr, 2);
+				twi_read_bytes(0x50, rx_data, 16, 0x00);
+				put_dump(rx_data, 16);
 			}
 		}
 	}
