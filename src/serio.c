@@ -51,7 +51,6 @@ void put_dump_null(uint8_t * b, uint8_t n)
 	}
 }
 
-
 int xputc(char c)
 {
 	if (c == '\a')

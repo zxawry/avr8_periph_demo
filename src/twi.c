@@ -6,221 +6,148 @@
 #include "twi.h"
 
 #include "serio.h"
-#include "queue.h"
 
-// first byte of buffer at index 0 is occupied with:
-// device_address | read/write
-// last byte of buffer at index length + 2 is occupied with:
-// resume_flag which determines if a stop condition is required
-// actuall data bytes sit at indeces from 1 up to length + 1
-
-static volatile uint8_t busy;
-static volatile uint8_t twsr;
-
-static connection_t connection;
-
-queue_t _debug_buffer;
+static int _start(uint8_t address, uint8_t rw_flag);
+static int _write(const uint8_t * data, int length);
+static void _stop(void);
 
 void twi_init(void)
 {
 	TWBR = ((F_CPU / TWI_FREQ) - 16) / 2;
 	TWSR = 0;
 
-	// bit position 3 indicates idle state
-	busy = 0;
-	twsr = _BV(3);
-
 	TWCR = _BV(TWEN);
-
-	queue_init(&_debug_buffer);
 }
 
-uint8_t twi_wait(void)
+int twi_read_bytes(uint8_t address, uint8_t * data, uint8_t length,
+		   uint8_t flags)
 {
-	while (busy) ;
-	return twsr;
-	//while (!(twsr & _BV(3))) ;
-	//return twsr & ~_BV(3);
+	uint8_t *my_data = data;
+
+	/* send start condition and slave address */
+	if (!(flags & TWI_NOSTART)) {
+		if (_start(address, TW_READ) < 0) {
+			return -1;
+		}
+	}
+
+	for (uint8_t i = 0; i < length; i++) {
+		/* Send NACK for last received byte */
+		if ((length - i) == 1) {
+			TWCR = (1 << TWEN) | (1 << TWINT);
+		} else {
+			TWCR = (1 << TWEA) | (1 << TWEN) | (1 << TWINT);
+		}
+
+		/* Wait for TWINT Flag set. This indicates that DATA has been received. */
+		while (!(TWCR & (1 << TWINT))) {
+		}
+
+		/* receive data byte */
+		my_data[i] = TWDR;
+	}
+
+	/* end transmission */
+	if (!(flags & TWI_NOSTOP)) {
+		_stop();
+	}
+
+	return 0;
 }
 
-void twi_start(void)
+int twi_write_bytes(uint8_t address, uint8_t * data, uint8_t length,
+		    uint8_t flags)
 {
-	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE) | _BV(TWSTA);
+	/* start transmission and send slave address */
+	if (!(flags & TWI_NOSTART)) {
+		if (_start(address, TW_WRITE) < 0) {
+			return -1;
+		}
+	}
+
+	/* send out data bytes */
+	if (_write(data, length) < 0) {
+		return -2;
+	}
+
+	/* end transmission */
+	if (!(flags & TWI_NOSTOP)) {
+		_stop();
+	}
+
+	return 0;
 }
 
-void twi_stop(void)
+static int _start(uint8_t address, uint8_t rw_flag)
 {
-	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWSTO);
-}
+	/* Reset TWI Interrupt Flag and transmit START condition */
+	TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
 
-void twi_ack(void)
-{
-	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE) | _BV(TWEA);
-}
+	/* Wait for TWINT Flag set. This indicates that the START has been
+	 * transmitted, and ACK/NACK has been received.*/
+	while (!(TWCR & (1 << TWINT))) {
+	}
 
-void twi_nack(void)
-{
-	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE);
-}
-
-void twi_send(uint8_t data)
-{
-	TWDR = data;
-}
-
-void twi_recv(void)
-{
-	connection.buffer[connection.index++] = TWDR;
-}
-
-/*
-void twi_reply(void)
-{
-	if (connection.index < connection.length) {
-		twi_ack();
+	/* Check value of TWI Status Register. Mask prescaler bits.
+	 * If status different from START go to ERROR */
+	if ((TWSR & 0xF8) == TW_START) {
+	} else if ((TWSR & 0xF8) == TW_REP_START) {
 	} else {
-		twi_nack();
+		_stop();
+		return -1;
 	}
-}
-*/
 
-void twi_done(void)
-{
-	busy = 0;
-	twsr |= _BV(3);
-}
+	/* Load ADDRESS and R/W Flag into TWDR Register.
+	 * Clear TWINT bit in TWCR to start transmission of ADDRESS */
+	TWDR = (address << 1) | rw_flag;
+	TWCR = (1 << TWINT) | (1 << TWEN);
 
-void twi_write(uint8_t address, uint8_t * data, uint8_t length, uint8_t resume)
-{
-	twi_wait();
-
-	queue_init(&_debug_buffer);
-
-	busy = 1;
-	twsr &= ~_BV(3);
-
-	connection.address = address | TW_WRITE;
-	connection.buffer = data;
-	connection.length = length;
-	connection.resume = resume;
-	connection.index = 0;
-
-	twi_start();
-}
-
-void twi_read(uint8_t address, uint8_t * data, uint8_t length, uint8_t resume)
-{
-	twi_wait();
-
-	queue_init(&_debug_buffer);
-
-	busy = 1;
-	twsr &= ~_BV(3);
-
-	connection.address = address | TW_READ;
-	connection.buffer = data;
-	connection.length = length;
-	connection.resume = resume;
-	connection.index = 0;
-
-	twi_start();
-}
-
-#define S(b) (b >> 4)
-#define M(b) (b & 0x0F)
-#define C(b) ((b > 9) ? (b + 0x57) : (b + 0x30))
-#define L(b) C(M(b))
-#define H(b) C(M(S(b)))
-
-ISR(TWI_vect, ISR_BLOCK)
-{
-	twsr = TW_STATUS;
-
-	queue_enqueue(&_debug_buffer,(char) twsr);
-
-	switch (twsr) {
-
-	case TW_START: // 0x08
-	case TW_REP_START: // 0x10
-
-		// send address and wait for ack or nack
-
-		// sla+w/r -> TWDR
-		twi_send(connection.address);
-
-		// TWSTA=0 TWSTO=0 TWINT=1 TWEA=x -> TWCR
-		twi_nack();
-
-		break;
-
-	case TW_MT_SLA_ACK: // 0x18
-	case TW_MT_DATA_ACK: // 0x28
-
-		// as long as there is data to be written
-		if (connection.index < connection.length) {
-
-			// send data and wait for ack or nack
-
-			// data -> TWDR
-			twi_send(connection.buffer[connection.index++]);
-
-			// TWSTA=0 TWSTO=0 TWINT=1 TWEA=x -> TWCR
-			twi_nack();
-
-		// no data left, send stop if no operation is needed
-		// else next r/w operation will be a repeated start
-		} else {
-
-			// no need to keep alive
-			if (!connection.resume) {
-				// stop current transmission
-
-				// TWSTA=0 TWSTO=1 TWINT=1 TWEA=x -> TWCR
-				twi_stop();
-			}
-			twi_done();
-		}
-		break;
-
-	case TW_MR_DATA_ACK: // 0x50
-
-		// TWDR -> buffer
-		twi_recv();
-		// falls through
-
-	case TW_MR_SLA_ACK: // 0x40
-
-		// if more data should be read send ack else nack
-		if (connection.index < (connection.length - 1)) {
-
-			// TWSTA=0 TWSTO=0 TWINT=1 TWEA=1 -> TWCR
-			twi_ack();
-		} else {
-
-			// TWSTA=0 TWSTO=0 TWINT=1 TWEA=0 -> TWCR
-			twi_nack();
-		}
-		break;
-
-	case TW_MR_DATA_NACK: // 0x58
-
-		// slave has no more data to send
-
-		// TWDR -> buffer
-		twi_recv();
-		// falls through
-
-	case TW_MT_SLA_NACK: // 0x20
-	case TW_MR_SLA_NACK: // 0x48
-	case TW_MT_DATA_NACK: // 0x30
-	default:
-		// should stop the connection
-		// the value of twsr indicates errors
-
-		// TWSTA=0 TWSTO=1 TWINT=1 TWEA=x -> TWCR
-		twi_stop();
-
-		twi_done();
-		break;
+	/* Wait for TWINT Flag set. This indicates that ADDRESS has been transmitted. */
+	while (!(TWCR & (1 << TWINT))) {
 	}
+
+	/* Check value of TWI Status Register. Mask prescaler bits.
+	 * If status different from ADDRESS ACK go to ERROR */
+	if ((TWSR & 0xF8) == TW_MT_SLA_ACK) {
+	} else if ((TWSR & 0xF8) == TW_MR_SLA_ACK) {
+	} else {
+		_stop();
+		return -2;
+	}
+
+	return 0;
+}
+
+/* TODO : const uint8_t data instead of *data */
+static int _write(const uint8_t * data, int length)
+{
+	for (int i = 0; i < length; i++) {
+		/* Load DATA into TWDR Register.
+		 * Clear TWINT bit in TWCR to start transmission of data */
+		TWDR = data[i];
+		TWCR = (1 << TWINT) | (1 << TWEN);
+
+		/* Wait for TWINT Flag set. This indicates that DATA has been transmitted. */
+		while (!(TWCR & (1 << TWINT))) {
+		}
+
+		/* Check value of TWI Status Register. Mask prescaler bits. If status
+		 * different from MT_DATA_ACK, return number of transmitted bytes */
+		if ((TWSR & 0xF8) != TW_MT_DATA_ACK) {
+			return -1;
+		} else {
+		}
+	}
+
+	return 0;
+}
+
+static void _stop(void)
+{
+	/* Reset TWI Interrupt Flag and transmit STOP condition */
+	TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+	/* Wait for STOP Flag reset. This indicates that STOP has been transmitted. */
+	while (TWCR & (1 << TWSTO)) {
+	}
+	TWCR = 0;
 }

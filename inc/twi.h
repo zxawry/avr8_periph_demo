@@ -13,19 +13,14 @@
 #define TWI_BUFFER_LENGTH 128
 #endif
 
-typedef struct {
-	uint8_t index;
-	uint8_t length;
-	uint8_t address;
-	uint8_t * buffer;
-	uint8_t resume;
-} connection_t;
+#define TWI_NOSTOP 0x01
+#define TWI_NOSTART 0x02
 
 void twi_init(void);
-void twi_write(uint8_t address, uint8_t * data, uint8_t length, uint8_t resume);
-void twi_read(uint8_t address, uint8_t * data, uint8_t length, uint8_t resume);
-uint8_t twi_wait(void);
 
-extern queue_t _debug_buffer;
+int twi_read_bytes(uint8_t address, uint8_t * data, uint8_t length,
+		   uint8_t flags);
+int twi_write_bytes(uint8_t address, uint8_t * data, uint8_t length,
+		    uint8_t flags);
 
 #endif
