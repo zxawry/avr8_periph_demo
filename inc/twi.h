@@ -21,4 +21,6 @@ void twi_init(void);
 int twi_read_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
 int twi_write_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
 
+extern queue_t _debug_buffer;
+
 #endif
