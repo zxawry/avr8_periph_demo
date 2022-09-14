@@ -18,8 +18,13 @@
 
 void twi_init(void);
 
-int twi_read_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
-int twi_write_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
+int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
+
+#define twi_write_bytes(a, d, l, f) twi_transfer((a << 1) | 0, d, l, f)
+#define twi_read_bytes(a, d, l, f) twi_transfer((a << 1) | 1, d, l, f)
+
+//int twi_read_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
+//int twi_write_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
 
 extern queue_t _debug_buffer;
 

@@ -62,42 +62,7 @@ void twi_init(void)
 	_data = NULL;
 }
 
-int twi_read_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
-{
-	queue_init(&_debug_buffer);
-
-	/* send start condition and slave address */
-	if (!(flags & TWI_NOSTART)) {
-		if (_start() < 0) {
-			return -1;
-		}
-	}
-
-	_busy = 0xff;
-
-	_cnt = 0;
-	_len = len;
-	_data = data;
-
-	if (!(flags & TWI_NOSTART)) {
-		TWDR = (addr << 1) | TW_READ;
-		TWCR = _BV(TWINT) | _BV(TWIE) | _BV(TWEN);
-	} else {
-		TWCR = _BV(TWIE) | _BV(TWEN);
-	}
-
-	while (_busy) {
-	}
-
-	/* end transmission */
-	if (!(flags & TWI_NOSTOP)) {
-		_stop();
-	}
-
-	return 0;
-}
-
-int twi_write_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
+int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 {
 	queue_init(&_debug_buffer);
 
@@ -115,7 +80,7 @@ int twi_write_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 	_data = data;
 
 	if (!(flags & TWI_NOSTART)) {
-		TWDR = (addr << 1) | TW_WRITE;
+		TWDR = addr;
 		TWCR = _BV(TWINT) | _BV(TWIE) | _BV(TWEN);
 	} else {
 		TWCR = _BV(TWIE) | _BV(TWEN);
