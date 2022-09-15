@@ -5,8 +5,6 @@
 
 #include "twi.h"
 
-queue_t _debug_buffer;
-
 static volatile uint8_t _busy;
 static volatile uint8_t _cnt;
 static volatile uint8_t _len;
@@ -17,11 +15,7 @@ static void _stop(void);
 
 ISR(TWI_vect, ISR_BLOCK)
 {
-	uint8_t i = TW_STATUS;
-
-	queue_enqueue(&_debug_buffer, i);
-
-	switch (i) {
+	switch (TW_STATUS) {
 	case TW_MT_SLA_ACK:	// 0x18
 	case TW_MT_DATA_ACK:	// 0x28
 		if (_cnt < _len) {
@@ -64,8 +58,6 @@ void twi_init(void)
 
 int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 {
-	queue_init(&_debug_buffer);
-
 	/* start transmission and send slave address */
 	if (!(flags & TWI_NOSTART)) {
 		if (_start() < 0) {
