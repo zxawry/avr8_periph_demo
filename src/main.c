@@ -8,11 +8,17 @@
 
 #include "usart.h"
 
+#include "queue_test.h"
+
 int main(void)
 {
 	usart_init();
 
-	assert(0 == 1);
+	fputs("\nRUNNING TESTS... \n", stderr);
+
+	assert(queue_test_main() == 0);
+
+	fputs("\nALL TESTS PASSED.\n", stderr);
 
 	for (;;) {
 	}
