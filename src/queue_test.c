@@ -46,16 +46,11 @@ void assert_queue_init(queue_t * queue)
 {
 	queue_init(queue);
 
-	assert(queue->size == 0);
-	assert(queue->head == 0);
-	assert(queue->tail == (QUEUE_SIZE - 1));
-
 	uint8_t i;
 	for(i = 0; i < QUEUE_SIZE; i++)
 		assert(queue->data[i] == 0);
 
 	assert(queue_is_empty(queue) == true);
-
 	assert(queue_is_full(queue) == false);
 }
 
@@ -99,7 +94,7 @@ void assert_queue_flush(queue_t * queue)
 	uint8_t i;
 
 	for(i = queue->size; i > 0; i--)
-		(void) assert_queue_dequeue(queue);
+		(void) queue_dequeue(queue);
 
 	assert(queue_is_empty(queue) == true);
 }
@@ -109,10 +104,10 @@ void assert_queue_ping_pong(queue_t * queue)
 	assert_queue_flush(queue);
 
 	char ping = 72;
-	assert_queue_enqueue(queue, ping);
+	queue_enqueue(queue, ping);
 
 	char pong;
-	pong = assert_queue_dequeue(queue);
+	pong = queue_dequeue(queue);
 
 	assert(ping == pong);
 }
@@ -128,14 +123,14 @@ void assert_queue_pump_dump(queue_t * queue)
 	char pump;
 	for(pump = free; pump > 0; pump--) {
 		assert(queue_is_full(queue) == false);
-		assert_queue_enqueue(queue, pump);
+		queue_enqueue(queue, pump);
 	}
 	assert(queue_is_full(queue) == true);
 
 	char dump;
 	for(dump = free; dump > 0; dump--) {
 		assert(queue_is_empty(queue) == false);
-		assert(assert_queue_dequeue(queue) == dump);
+		assert(queue_dequeue(queue) == dump);
 	}
 	assert(queue->size == size);
 }
@@ -150,13 +145,17 @@ int queue_test_main(void)
 
 	assert_queue_pump_dump(&queue);
 
-	const char dummy[16] = "0123456789abcdef";
+	const char dummy[64] = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890<>";
 
-	for(uint8_t i = 0; i < 16; i++)
-		assert_queue_enqueue(&queue, dummy[i]);
+	for(uint8_t i = 0; i < 64; i++)
+		queue_enqueue(&queue, dummy[i]);
 
-	for(uint8_t i = 0; i < 16; i++)
-		assert(assert_queue_dequeue(&queue) == dummy[i]);
+	assert(queue_is_full(&queue) == true);
+
+	for(uint8_t i = 0; i < 64; i++)
+		assert(queue_dequeue(&queue) == dummy[i]);
+
+	assert(queue_is_empty(&queue) == true);
 
 	assert_queue_ping_pong(&queue);
 
@@ -168,15 +167,15 @@ int queue_test_main(void)
 	char taken[16] = "xxxxxxxxxxxxxxxx";
 
 	for(uint8_t i = 0; i < 16; i++)
-		assert_queue_enqueue(&queue, given[i]);
+		queue_enqueue(&queue, given[i]);
 
 	for(uint8_t i = 0; i < 16; i++) {
-		taken[i] = assert_queue_dequeue(&queue);
-		assert_queue_enqueue(&queue, taken[i]);
+		taken[i] = queue_dequeue(&queue);
+		queue_enqueue(&queue, taken[i]);
 	}
 
 	for(uint8_t i = 0; i < 16; i++)
-		assert(assert_queue_dequeue(&queue) == given[i]);
+		assert(queue_dequeue(&queue) == given[i]);
 
 	return 0;
 }
