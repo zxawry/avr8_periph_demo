@@ -3,66 +3,46 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/atomic.h>
 
 #include "usart.h"
-#include "queue.h"
 
-static queue_t _usart_tx_buffer;
-static queue_t _usart_rx_buffer;
-
-ISR(USART_UDRE_vect, ISR_BLOCK)
-{
-	UDR = queue_dequeue(&_usart_tx_buffer);
-
-	if (queue_is_empty(&_usart_tx_buffer))
-		UCSRB &= ~_BV(UDRIE);
-}
-
-ISR(USART_RXC_vect, ISR_BLOCK)
-{
-	char data = UDR;
-
-	if (!queue_is_full(&_usart_rx_buffer))
-		queue_enqueue(&_usart_rx_buffer, data);
-}
+static FILE _usart_stream;
 
 void usart_init(void)
 {
 	UBRRL = (F_CPU / (16UL * USART_BAUD)) - 1;
-	UCSRB = _BV(RXCIE) | _BV(RXEN) | _BV(TXEN);
+	UCSRB = _BV(RXEN) | _BV(TXEN);
 	UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);
 
-	queue_init(&_usart_rx_buffer);
-	queue_init(&_usart_tx_buffer);
+	fdev_setup_stream(&_usart_stream, usart_putc, NULL, _FDEV_SETUP_WRITE);
+	stderr = &_usart_stream;
 }
 
-int usart_putc(char data)
+int usart_putc(char data, FILE * stream)
 {
-	if (queue_is_full(&_usart_tx_buffer))
-		return -1;
+	if (data == '\n')
+		usart_putc('\r', stream);
 
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-		queue_enqueue(&_usart_tx_buffer, data);
-	}
+	loop_until_bit_is_set(UCSRA, UDRE);
 
-	UCSRB |= _BV(UDRIE);
+	UDR = data;
 
 	return 0;
 }
 
-int usart_getc(void)
+int usart_getc(FILE * stream)
 {
-	if (queue_is_empty(&_usart_rx_buffer))
-		return -1;
+	(void) stream;
 
-	char data;
+	loop_until_bit_is_set(UCSRA, RXC);
 
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-		data = queue_dequeue(&_usart_rx_buffer);
-	}
+	if (bit_is_set(UCSRA, FE))
+		return _FDEV_EOF;
+	if (bit_is_set(UCSRA, DOR))
+		return _FDEV_ERR;
 
-	return (int)data;
+	char data = UDR;
+	return data;
 }
