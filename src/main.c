@@ -9,6 +9,8 @@
 #include "serio.h"
 #include "twi.h"
 
+#define TWI_DEV_ADDR (0x50)
+
 static inline void periph_init(void);
 static uint8_t conv_hex_to_dec(const char hex);
 
@@ -22,14 +24,13 @@ static inline void periph_init(void)
 
 static uint8_t conv_hex_to_dec(const char hex)
 {
-	uint8_t dec = 0;
+	if (hex >= 'a' && hex <= 'f')
+		return hex - 'a' + 10;
 
 	if (hex >= '0' && hex <= '9')
-		dec = hex - '0';
-	else if (hex >= 'a' && hex <= 'f')
-		dec = hex - 'a' + 10;
+		return hex - '0';
 
-	return dec;
+	return 0;
 }
 
 int main(void)
@@ -38,44 +39,43 @@ int main(void)
 
 	char buffer[128];
 
-	uint8_t tx_data[16] = {
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-	};
-
-	uint8_t rx_data[16] = {
-		0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
-		0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
-	};
-
 	xputs("process started...\n");
 
-	twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
-	xputs("set device address pointer to 0x0000\n");
-	twi_write_bytes(0x50, tx_data, 16, TWI_NOSTART);
-	xputs("wrote 16 bytes to eeprom device\n");
-	put_dump(tx_data, 16);
+	uint8_t rx_data[256];
+	uint8_t tx_data[256];
 
-	twi_write_bytes(0x50, (uint8_t *) "\0\0", 2, TWI_NOSTOP);
-	xputs("set device address pointer to 0x0000\n");
-	twi_read_bytes(0x50, rx_data, 16, 0x00);
-	xputs("read 16 bytes from eeprom device\n");
-	put_dump(rx_data, 16);
+	for(uint16_t i = 0; i < 256; i++)
+		tx_data[i] = (uint8_t) i;
 
-	uint8_t mem_addr[2] = { 0, 0, };
+	uint8_t len = 0;
+	uint8_t mem[2] = { 0, 0, };
 
 	for (;;) {
 		xputs("$ ");
 		if (xgets(buffer, 128)) {
 			if (buffer[0] != '\n') {
-				mem_addr[0] = conv_hex_to_dec(buffer[0]) << 4;
-				mem_addr[0] += conv_hex_to_dec(buffer[1]);
-				mem_addr[1] = conv_hex_to_dec(buffer[2]) << 4;
-				mem_addr[1] += conv_hex_to_dec(buffer[3]);
-				twi_write_bytes(0x50, mem_addr, 2, TWI_NOSTOP);
-				put_dump(mem_addr, 2);
-				twi_read_bytes(0x50, rx_data, 16, 0x00);
-				put_dump(rx_data, 16);
+				// addr ln f
+				// 00c0 10 w
+				// 00c0 10 r
+
+				mem[0] = conv_hex_to_dec(buffer[0]) << 4;
+				mem[0] += conv_hex_to_dec(buffer[1]);
+				mem[1] = conv_hex_to_dec(buffer[2]) << 4;
+				mem[1] += conv_hex_to_dec(buffer[3]);
+
+				len = conv_hex_to_dec(buffer[5]) << 4;
+				len += conv_hex_to_dec(buffer[6]);
+
+				twi_write_bytes(TWI_DEV_ADDR, mem, 2, TWI_NOSTOP);
+				put_dump(mem, 2);
+
+				if (buffer[8] == 'r') {
+					twi_read_bytes(TWI_DEV_ADDR, rx_data, len, 0x00);
+					put_dump(rx_data, len);
+				} else if (buffer[8] == 'w') {
+					twi_write_bytes(TWI_DEV_ADDR, tx_data, len, TWI_NOSTART);
+					put_dump(rx_data, len);
+				}
 			}
 		}
 	}
