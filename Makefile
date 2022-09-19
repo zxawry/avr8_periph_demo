@@ -14,6 +14,7 @@ INCDIR = inc
 SRC  = src/main.c
 SRC += src/usart.c
 SRC += src/tests.c
+SRC += src/convert.c
 SRCDIR = src
 
 # object files and directories
