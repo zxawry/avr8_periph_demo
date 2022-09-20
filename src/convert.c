@@ -3,22 +3,13 @@
 
 #include "convert.h"
 
-#define _subtract_(x, y)				\
-	__asm__ __volatile__(				\
-		"subi	%[r], %[k]"		"\n\t"	\
-		: [r] "=d" (x)				\
-		: "0" (x), [k] "M" (y)			\
-	);
-
 uint8_t asc_to_bin(char asc)
 {
-	_subtract_(asc, 0x61);
-	if (asc < 6)
-		return asc + 0xa;
+	if ((asc >= 'a') && (asc <= 'f'))
+		return asc - 'a' + 0x0a;
 
-	_subtract_(asc, 0xcf);
-	if (asc < 10)
-		return asc;
+	if ((asc >= '0') && (asc <= '9'))
+		return asc - '0';
 
 	return 0;
 }
