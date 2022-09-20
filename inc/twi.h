@@ -20,10 +20,10 @@ void twi_init(void);
 
 int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
 
-#define twi_write_bytes(a, d, l, f) twi_transfer((a << 1) | 0, d, l, f)
-#define twi_read_bytes(a, d, l, f) twi_transfer((a << 1) | 1, d, l, f)
+#define twi_write_bytes(addr, data, len, flags) \
+	twi_transfer((addr << 1) | 0, data, len, flags)
 
-//int twi_read_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
-//int twi_write_bytes(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags);
+#define twi_read_bytes(addr, data, len, flags) \
+	twi_transfer((addr << 1) | 1, data, len, flags)
 
 #endif

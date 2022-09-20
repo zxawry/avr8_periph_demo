@@ -6,9 +6,10 @@
 #include "twi.h"
 
 static volatile uint8_t _busy;
-static volatile uint8_t _cnt;
-static volatile uint8_t _len;
-static volatile uint8_t *_data;
+
+static uint8_t _cnt;
+static uint8_t _len;
+static uint8_t *_data;
 
 static int _start(void);
 static void _stop(void);
@@ -48,9 +49,8 @@ void twi_init(void)
 	TWBR = ((F_CPU / TWI_FREQ) - 16) / 2;
 	TWSR = 0;
 
-	TWCR = _BV(TWEN);
-
 	_busy = 0;
+
 	_cnt = 0;
 	_len = 0;
 	_data = NULL;
@@ -58,7 +58,7 @@ void twi_init(void)
 
 int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 {
-	/* start transmission and send slave address */
+	// start transmission
 	if (!(flags & TWI_NOSTART)) {
 		if (_start() < 0) {
 			return -1;
@@ -81,7 +81,7 @@ int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 	while (_busy) {
 	}
 
-	/* end transmission */
+	// end transmission
 	if (!(flags & TWI_NOSTOP)) {
 		_stop();
 	}
@@ -91,15 +91,13 @@ int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 
 static int _start(void)
 {
-	/* Reset TWI Interrupt Flag and transmit START condition */
+	// reset twi interrupt flag and transmit start condition
 	TWCR = _BV(TWINT) | _BV(TWSTA) | _BV(TWEN);
 
-	/* Wait for TWINT Flag set. This indicates that the START has been
-	 * transmitted, and ACK/NACK has been received.*/
+	// wait for start condition to be transmitted
 	loop_until_bit_is_set(TWCR, TWINT);
 
-	/* Check value of TWI Status Register. Mask prescaler bits.
-	 * If status different from START go to ERROR */
+	// check value of twi status register
 	switch (TW_STATUS) {
 	case TW_START:
 	case TW_REP_START:
@@ -114,12 +112,12 @@ static int _start(void)
 
 static void _stop(void)
 {
-	/* Reset TWI Interrupt Flag and transmit STOP condition */
+	// reset twi interrupt flag and transmit stop condition
 	TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN);
 
-	/* Wait for STOP Flag reset. This indicates that STOP has been transmitted. */
+	// wait for stop condition to be transmitted
 	loop_until_bit_is_clear(TWCR, TWSTO);
 
-	// disable TWI peripheral
+	// disable twi peripheral
 	TWCR = 0;
 }
