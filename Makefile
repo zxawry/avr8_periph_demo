@@ -12,6 +12,7 @@ INCDIR = inc
 
 # source files and directories
 SRC  = src/main.c
+SRC += src/convert.c
 SRC += src/usart.c
 SRC += src/serio.c
 SRC += src/queue.c

@@ -5,12 +5,14 @@
 
 #include <avr/interrupt.h>
 
+#include "convert.h"
 #include "usart.h"
 #include "serio.h"
 #include "twi.h"
 
+#define TWI_DEV_ADDR (0x50)
+
 static inline void periph_init(void);
-static uint8_t asc_to_bin(const char hex);
 
 static inline void periph_init(void)
 {
@@ -20,61 +22,74 @@ static inline void periph_init(void)
 	sei();
 }
 
-static uint8_t asc_to_bin(const char hex)
-{
-	if (hex >= 'a' && hex <= 'f')
-		return hex - 'a' + 10;
-
-	if (hex >= '0' && hex <= '9')
-		return hex - '0';
-
-	return 0;
-}
-
 int main(void)
 {
 	periph_init();
 
 	char buffer[128];
 
-	uint8_t tx_data[16] = {
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-	};
-
-	uint8_t rx_data[16] = {
-		0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
-		0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
-	};
-
-	uint8_t mem_addr[2] = { 0, 0xc0, };
-
 	xputs("process started...\n");
 
-	twi_write_bytes(0x50, mem_addr, 2, TWI_NOSTOP);
-	xputs("set device address pointer to 0x0000\n");
-	twi_write_bytes(0x50, tx_data, 16, TWI_NOSTART);
-	xputs("wrote 16 bytes to eeprom device\n");
-	put_dump(tx_data, 16);
+	uint8_t rx_data[32];
+	uint8_t tx_data[32];
 
-	twi_write_bytes(0x50, mem_addr, 2, TWI_NOSTOP);
-	xputs("set device address pointer to 0x0000\n");
-	twi_read_bytes(0x50, rx_data, 16, 0x00);
-	xputs("read 16 bytes from eeprom device\n");
-	put_dump(rx_data, 16);
+	uint8_t len = 0;
+	uint8_t mem[2] = { 0, 0, };
+
+	uint16_t addr = 0x0000;
+	uint8_t res = 0;
+
+	for (uint8_t i = 0; i < 32; i++)
+		tx_data[i] = 0xff;
+
+	for (addr = 0; addr < (128 * 32); addr += 32) {
+		mem[0] = (uint8_t) (addr >> 8);
+		mem[1] = (uint8_t) (addr & 0xff);
+
+		res = twi_write_bytes(TWI_DEV_ADDR, mem, 2, TWI_NOSTOP);
+		put_dump(mem, 2);
+		if (res != 0) {
+			xputs("failed to set address");
+			addr -= 32;
+			continue;
+		}
+		res = twi_write_bytes(TWI_DEV_ADDR, tx_data, 32, TWI_NOSTART);
+		if (res != 0) {
+			xputs("failed to write bytes");
+			addr -= 32;
+			continue;
+		}
+	}
+
+	//for(uint8_t i = 0; i < 32; i++)
+	//tx_data[i] = i;
 
 	for (;;) {
 		xputs("$ ");
 		if (xgets(buffer, 128)) {
 			if (buffer[0] != '\n') {
-				mem_addr[0] = asc_to_bin(buffer[0]) << 4;
-				mem_addr[0] += asc_to_bin(buffer[1]);
-				mem_addr[1] = asc_to_bin(buffer[2]) << 4;
-				mem_addr[1] += asc_to_bin(buffer[3]);
-				twi_write_bytes(0x50, mem_addr, 2, TWI_NOSTOP);
-				put_dump(mem_addr, 2);
-				twi_read_bytes(0x50, rx_data, 16, 0x00);
-				put_dump(rx_data, 16);
+				// addr ln f
+				// 00c0 10 w
+				// 00c0 10 r
+
+				mem[0] = str_to_bin(&buffer[0]);
+				mem[1] = str_to_bin(&buffer[2]);
+
+				len = str_to_bin(&buffer[5]);
+
+				twi_write_bytes(TWI_DEV_ADDR, mem, 2,
+						TWI_NOSTOP);
+				put_dump(mem, 2);
+
+				if (buffer[8] == 'r') {
+					twi_read_bytes(TWI_DEV_ADDR, rx_data,
+						       len, 0x00);
+					put_dump(rx_data, len);
+				} else if (buffer[8] == 'w') {
+					twi_write_bytes(TWI_DEV_ADDR, tx_data,
+							len, TWI_NOSTART);
+					put_dump(rx_data, len);
+				}
 			}
 		}
 	}
