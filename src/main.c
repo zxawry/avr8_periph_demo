@@ -10,7 +10,6 @@
 #include "usart.h"
 #include "serio.h"
 #include "ds1307.h"
-//#include "twi.h"
 
 static inline void periph_init(void);
 static void display_current_time(void);
@@ -27,10 +26,9 @@ static inline void periph_init(void)
 static void display_current_time(void)
 {
 	char string[32];
-	struct tm time;
 
-	ds1307_get_time(&time);
-	isotime_r(&time, string);
+	ds1307_get_time(string);
+
 	xputs("current time is -> ");
 	xputs(string);
 	xputc('\n');
@@ -39,10 +37,8 @@ static void display_current_time(void)
 static void modify_current_time(void)
 {
 	char string[32];
-	struct tm time;
-	uint32_t epoch;
 
-	xputs("set current epoch -> ");
+	xputs("set current time to -> ");
 	xgets(string, 32);
 
 	if (string[0] == '\n') {
@@ -50,14 +46,9 @@ static void modify_current_time(void)
 		return;
 	}
 
-	epoch = atol(string);
-	gmtime_r(&epoch, &time);
+	ds1307_set_time(string);
 
-	ds1307_set_time(&time);
-	isotime_r(&time, string);
-	xputs("set current time to -> ");
-	xputs(string);
-	xputc('\n');
+	xputs("time updated.\n");
 }
 
 int main(void)

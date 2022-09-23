@@ -17,6 +17,7 @@ SRC += src/serio.c
 SRC += src/queue.c
 SRC += src/twi.c
 SRC += src/ds1307.c
+SRC += src/convert.c
 SRCDIR = src
 
 # object files and directories
