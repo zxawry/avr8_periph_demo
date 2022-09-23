@@ -6,7 +6,7 @@
 // initiate the queue.
 void queue_init(queue_t * queue)
 {
-	queue->tail = QUEUE_SIZE - 1;
+	queue->tail = 0;
 	queue->head = 0;
 	queue->size = 0;
 
