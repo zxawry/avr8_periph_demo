@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#define __ASSERT_USE_STDERR
+//#define __ASSERT_USE_STDERR
 #include <assert.h>
 
 #include "usart.h"

@@ -1,7 +1,7 @@
 // file: queue_test.c
 // author: awry
 
-#define __ASSERT_USE_STDERR
+//#define __ASSERT_USE_STDERR
 
 #include <assert.h>
 #include <stdio.h>
@@ -48,7 +48,7 @@ void assert_queue_init(queue_t * queue)
 
 	assert(queue->size == 0);
 	assert(queue->head == 0);
-	assert(queue->tail == (QUEUE_SIZE - 1));
+	assert(queue->tail == 0);
 
 	uint8_t i;
 	for(i = 0; i < QUEUE_SIZE; i++)
@@ -70,7 +70,7 @@ void assert_queue_enqueue(queue_t * queue, char item)
 	assert(queue->head == head);
 	assert(queue->tail == ((tail + 1) & (QUEUE_SIZE - 1)));
 	assert(queue->size == (size + 1));
-	assert(queue->data[(tail + 1) & (QUEUE_SIZE - 1)] == item);
+	assert(queue->data[tail] == item);
 }
 
 char assert_queue_dequeue(queue_t * queue)
