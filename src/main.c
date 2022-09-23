@@ -5,6 +5,7 @@
 
 #include <avr/interrupt.h>
 
+#include "convert.h"
 #include "usart.h"
 #include "serio.h"
 #include "twi.h"
@@ -12,7 +13,6 @@
 #define TWI_DEV_ADDR (0x50)
 
 static inline void periph_init(void);
-static uint8_t conv_hex_to_dec(const char hex);
 
 static inline void periph_init(void)
 {
@@ -20,17 +20,6 @@ static inline void periph_init(void)
 	usart_init();
 	twi_init();
 	sei();
-}
-
-static uint8_t conv_hex_to_dec(const char hex)
-{
-	if (hex >= 'a' && hex <= 'f')
-		return hex - 'a' + 10;
-
-	if (hex >= '0' && hex <= '9')
-		return hex - '0';
-
-	return 0;
 }
 
 int main(void)
@@ -58,13 +47,10 @@ int main(void)
 				// 00c0 10 w
 				// 00c0 10 r
 
-				mem[0] = conv_hex_to_dec(buffer[0]) << 4;
-				mem[0] += conv_hex_to_dec(buffer[1]);
-				mem[1] = conv_hex_to_dec(buffer[2]) << 4;
-				mem[1] += conv_hex_to_dec(buffer[3]);
+				mem[0] = str_to_bin(&buffer[0]);
+				mem[1] = str_to_bin(&buffer[2]);
 
-				len = conv_hex_to_dec(buffer[5]) << 4;
-				len += conv_hex_to_dec(buffer[6]);
+				len = str_to_bin(&buffer[5]);
 
 				twi_write_bytes(TWI_DEV_ADDR, mem, 2, TWI_NOSTOP);
 				put_dump(mem, 2);
