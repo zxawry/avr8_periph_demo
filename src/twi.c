@@ -16,17 +16,14 @@ static void _stop(void);
 
 ISR(TWI_vect, ISR_BLOCK)
 {
-	switch (TW_STATUS) {
-	case TW_MT_SLA_ACK:	// 0x18
-	case TW_MT_DATA_ACK:	// 0x28
-		if (_cnt < _len) {
-			TWDR = _data[_cnt++];
-			TWCR = _BV(TWINT) | _BV(TWIE) | _BV(TWEN);
-			break;
-		}
-		goto exit;
+	uint8_t twsr = TW_STATUS;
+
+	switch (twsr) {
 	case TW_MR_DATA_ACK:	// 0x50
+	case TW_MR_DATA_NACK:	// 0x58
 		_data[_cnt++] = TWDR;
+		if (twsr == TW_MR_DATA_NACK)
+			goto exit;
 		// falls through
 	case TW_MR_SLA_ACK:	// 0x40
 		if (_cnt < _len - 1) {
@@ -35,11 +32,16 @@ ISR(TWI_vect, ISR_BLOCK)
 			TWCR = _BV(TWINT) | _BV(TWIE) | _BV(TWEN);
 		}
 		break;
-	case TW_MR_DATA_NACK:	// 0x58
-		_data[_cnt++] = TWDR;
+	case TW_MT_SLA_ACK:	// 0x18
+	case TW_MT_DATA_ACK:	// 0x28
+		if (_cnt < _len) {
+			TWDR = _data[_cnt++];
+			TWCR = _BV(TWINT) | _BV(TWIE) | _BV(TWEN);
+			break;
+		}
 		// falls through
-	default:
- exit:		TWCR = _BV(TWEN);
+	exit: default:
+		TWCR = _BV(TWEN);
 		_busy = 0;
 	}
 }
