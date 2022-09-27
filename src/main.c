@@ -8,9 +8,9 @@
 #include "usart.h"
 #include "serio.h"
 
-inline void periph_init(void);
+static void periph_init(void);
 
-inline void periph_init(void)
+static void periph_init(void)
 {
 	cli();
 	usart_init();

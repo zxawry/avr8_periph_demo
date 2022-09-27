@@ -56,5 +56,5 @@ int usart_getc(void)
 
 	char data = queue_dequeue(&_usart_rx_buffer);
 
-	return (int) data;
+	return (int)data;
 }

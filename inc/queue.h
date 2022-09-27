@@ -18,18 +18,18 @@ typedef struct {
 } queue_t;
 
 // initiate the queue.
-void queue_init(queue_t* queue);
+void queue_init(queue_t * queue);
 
 // check if the queue is empty.
-char queue_is_empty(queue_t* queue);
+char queue_is_empty(queue_t * queue);
 
 // check if the queue is full.
-char queue_is_full(queue_t* queue);
+char queue_is_full(queue_t * queue);
 
 // append an item to the tail of the queue.
-void queue_enqueue(queue_t* queue, const char item);
+void queue_enqueue(queue_t * queue, const char item);
 
 // remove an item from the head of the queue.
-char queue_dequeue(queue_t* queue);
+char queue_dequeue(queue_t * queue);
 
-#endif // QUEUE_H_
+#endif				// QUEUE_H_

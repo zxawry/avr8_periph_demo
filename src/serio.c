@@ -69,10 +69,10 @@ int xgets(char *b, int n)
 	}
 
 	b[i] = '\0';
-	return (int) (c == '\n');
+	return (int)(c == '\n');
 }
 
-void put_dump(const char * input)
+void put_dump(const char *input)
 {
 	char c, h, l;
 	xputc('[');
@@ -80,9 +80,11 @@ void put_dump(const char * input)
 	while (*input) {
 		c = *input++;
 		h = (c & 0xF0) >> 4;
-		if (h > 9) h += 0x27;
+		if (h > 9)
+			h += 0x27;
 		l = c & 0x0F;
-		if (l > 9) l += 0x27;
+		if (l > 9)
+			l += 0x27;
 		xputc(h + '0');
 		xputc(l + '0');
 		xputc(' ');
