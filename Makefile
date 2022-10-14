@@ -36,8 +36,10 @@ OBJDUMP = avr-objdump
 CC_FLAGS := -pipe -gdwarf-2 -g$(DBG) -O$(OPT)
 CC_FLAGS += -mmcu=$(MCU) -DF_CPU=$(F_CPU)
 CC_FLAGS += -Wall -Wextra -Werror -Wshadow -Wformat=2 -Wundef -Wstrict-prototypes
-CC_FLAGS += -fno-common -ffunction-sections -fdata-sections -fno-jump-tables
-CC_FLAGS += -fno-strict-aliasing -funsigned-char -funsigned-bitfields -fpack-struct
+CC_FLAGS += -fpack-struct -fshort-enums
+CC_FLAGS += -ffunction-sections -fdata-sections
+CC_FLAGS += -funsigned-char -funsigned-bitfields
+CC_FLAGS += -fno-common -fno-jump-tables -fno-strict-aliasing
 CC_FLAGS += $(addprefix -I,$(INCDIR))
 
 # generic loader flags
@@ -75,7 +77,7 @@ A_SRC := $(filter %.S, $(SRC))
 OBJ += $(addsuffix .o, $(basename $(SRC)))
 OBJ := $(addprefix $(patsubst %/,%,$(OBJDIR))/, $(notdir $(OBJ)))
 
-# create the output object file directory
+# configure directories to search for prerequisites
 VPATH += $(dir $(SRC))
 
 # create a list of dependency files
@@ -96,53 +98,46 @@ MSG_OBJDMP_CMD  := ' [OBJDMP]  :'
 MSG_AVRDUDE_CMD := ' [AVRDUDE] :'
 
 # perform a complete build of the user application
-all: header elf hex bin lss sym size footer
-
-# print compiler and project name information when building
-header:
-	@echo $(MSG_INFO_TXT) Begin compilation of project \"$(PRG)\"...
-	@echo ""
-	@$(CC) --version
-
-# print project name information when building has completed
-footer:
-	@echo $(MSG_INFO_TXT) Finished building project \"$(PRG)\".
+all: elf hex bin lss sym tos
 
 # print size information of a compiled application
 size: $(PRG).elf
 	@echo $(MSG_SIZE_CMD) Determining size of \"$<\"
-	@echo ""
-	$(SIZE) --format=avr --mcu=$(MCU) $<
+	@$(SIZE) --format=berkeley $<
 
 # print size information on the symbols within an ELF file
 symbol-sizes: $(PRG).elf
 	@echo $(MSG_NM_CMD) Extracting \"$<\" symbols with decimal byte sizes
-	$(NM) --size-sort --demangle --radix=d $<
+	@$(NM) --size-sort --demangle --radix=d $<
 
 # clean intermediary build files
 mostlyclean:
 	@echo $(MSG_RM_CMD) Removing object files of \"$(PRG)\"
-	rm -Rf $(OBJ) $(OBJDIR)
+	@rm -f $(OBJ)
 	@echo $(MSG_RM_CMD) Removing dependency files of \"$(PRG)\"
-	rm -f $(DEP)
+	@rm -f $(DEP)
 
 # clean all build files
 clean: mostlyclean
 	@echo $(MSG_RM_CMD) Removing output files of \"$(PRG)\"
-	rm -f $(PRG).elf $(PRG).hex $(PRG).bin $(PRG).eep $(PRG).map $(PRG).lss $(PRG).sym lib$(PRG).a
+	@rm -f $(PRG).elf $(PRG).hex $(PRG).bin $(PRG).eep $(PRG).map $(PRG).lss $(PRG).sym $(PRG).tos
+	@echo $(MSG_RM_CMD) Removing object directory of \"$(PRG)\"
+	@rm -Rf $(OBJDIR)
 
-# force coding styles on source code files
+# enforce coding styles on source code files
 indent:
 	@echo $(MSG_INDENT_CMD) Indenting source files of \"$(PRG)\"
-	$(INDENT) $(INDENT_FLAGS) $(SRCDIR)/*.c $(INCDIR)/*.h
-	@rm -f $(SRCDIR)/*.c~ $(INCDIR)/*.h~
+	@$(INDENT) $(INDENT_FLAGS) $(shell find . -iname *.c -o -iname *.h)
+	@find . -iname *.c~ -o -iname *.h~ | xargs rm -f
 
 # helper targets, to build a specific type of output file
 elf: $(PRG).elf
-hex: $(PRG).hex $(PRG).eep
+hex: $(PRG).hex
 bin: $(PRG).bin
+eep: $(PRG).eep
 lss: $(PRG).lss
 sym: $(PRG).sym
+tos: $(PRG).tos
 
 # default target to *create* the user application's specified source files;
 # if this rule is executed by make, the input source file doesn't exist
@@ -153,65 +148,69 @@ $(SRC):
 # compile an input C source file and generate an assembly listing for it
 %.s: %.c $(MAKEFILE_LIST)
 	@echo $(MSG_CC_CMD) Generating assembly from C file \"$(notdir $<)\"
-	$(CC) -S $(CC_FLAGS) -x c -std=$(C_STD) $< -o $@
+	@$(CC) -S $(CC_FLAGS) -x c -std=$(C_STD) $< -o $@
 
 # compile an input C source file and generate a linkable object file for it
 $(OBJDIR)/%.o: %.c $(MAKEFILE_LIST)
 	@echo $(MSG_CC_CMD) Compiling C file \"$(notdir $<)\"
-	$(CC) -c $(CC_FLAGS) -x c -std=$(C_STD) -MMD -MP -MF $(@:%.o=%.d) $< -o $@
+	@$(CC) -c $(CC_FLAGS) -x c -std=$(C_STD) -MMD -MP -MF $(@:%.o=%.d) $< -o $@
 
 # assemble an input ASM source file and generate a linkable object file for it
 $(OBJDIR)/%.o: %.S $(MAKEFILE_LIST)
 	@echo $(MSG_AS_CMD) Assembling \"$(notdir $<)\"
-	$(CC) -c $(CC_FLAGS) -x assembler-with-cpp -MMD -MP -MF $(@:%.o=%.d) $< -o $@
+	@$(CC) -c $(CC_FLAGS) -x assembler-with-cpp -MMD -MP -MF $(@:%.o=%.d) $< -o $@
 
 # generate an ELF file from the user application
 .PRECIOUS  : $(OBJ)
 .SECONDARY : %.elf
 %.elf: $(OBJ)
 	@echo $(MSG_LD_CMD) Linking object files into \"$@\"
-	$(CC) $^ -o $@ $(LD_FLAGS)
+	@$(CC) $^ -o $@ $(LD_FLAGS)
 
 # extract out the loadable FLASH memory data from the project ELF file, and create an Intel HEX format file of it
 %.hex: %.elf
 	@echo $(MSG_OBJCPY_CMD) Extracting HEX file data from \"$<\"
-	$(OBJCOPY) -O ihex -R .eeprom -R .fuse -R .lock -R .signature $< $@
+	@$(OBJCOPY) -O ihex -R .eeprom -R .fuse -R .lock -R .signature $< $@
 
 # extract out the loadable FLASH memory data from the project ELF file, and create an Binary format file of it
 %.bin: %.elf
 	@echo $(MSG_OBJCPY_CMD) Extracting BIN file data from \"$<\"
-	$(OBJCOPY) -O binary -R .eeprom -R .fuse -R .lock -R .signature $< $@
+	@$(OBJCOPY) -O binary -R .eeprom -R .fuse -R .lock -R .signature $< $@
 
 # extract out the loadable EEPROM memory data from the project ELF file, and create an Intel HEX format file of it
 %.eep: %.elf
 	@echo $(MSG_OBJCPY_CMD) Extracting EEP file data from \"$<\"
-	$(OBJCOPY) -O ihex -j .eeprom --set-section-flags=.eeprom="alloc,load" --change-section-lma .eeprom=0 $< $@
+	@$(OBJCOPY) -O ihex -j .eeprom --set-section-flags=.eeprom="alloc,load" --change-section-lma .eeprom=0 $< $@
 
 # create an assembly listing file from an input project ELF file, containing interleaved assembly and source data
 %.lss: %.elf
 	@echo $(MSG_OBJDMP_CMD) Extracting LSS file data from \"$<\"
-	$(OBJDUMP) -h -d -z $< > $@
+	@$(OBJDUMP) -h -d -z $< > $@
 
 # create a symbol file listing the loadable and discarded symbols from an input project ELF file
 %.sym: %.elf
 	@echo $(MSG_NM_CMD) Extracting SYM file data from \"$<\"
-	$(NM) -n $< > $@
+	@$(NM) -n $< > $@
 
-# include build dependency files
--include $(shell mkdir -p $(OBJDIR) 2>/dev/null) $(DEP)
+# create a size file listing the used section sizes in bytes from an input project ELF file
+%.tos: %.elf
+	@echo $(MSG_SIZE_CMD) Determining size of \"$<\"
+	@$(SIZE) --format=berkeley $< | tee $@
+
+# include build dependency files and create object files directory
+-include $(shell mkdir -p $(OBJDIR) 2> /dev/null) $(DEP)
 
 # program in the target FLASH memory using AVRDUDE
 program: $(PRG).hex $(MAKEFILE_LIST)
 	@echo $(MSG_AVRDUDE_CMD) Programming device \"$(AVRDUDE_PARTNO)\" FLASH using \"$(AVRDUDE_PROGRAMMER)\" on port \"$(AVRDUDE_PORT)\"
-	$(AVRDUDE) $(AVRDUDE_FLAGS) -U flash:w:$<
+	@$(AVRDUDE) $(AVRDUDE_FLAGS) -U flash:w:$<
 
 # program in the target EEPROM memory using AVRDUDE
 program-ee: $(PRG).eep $(MAKEFILE_LIST)
 	@echo $(MSG_AVRDUDE_CMD) Programming device \"$(AVRDUDE_PARTNO)\" EEPROM using \"$(AVRDUDE_PROGRAMMER)\" on port \"$(AVRDUDE_PORT)\"
-	$(AVRDUDE) $(AVRDUDE_FLAGS) -U eeprom:w:$<
+	@$(AVRDUDE) $(AVRDUDE_FLAGS) -U eeprom:w:$<
 
-BUILD_TARGETS  = header footer size symbol-sizes all elf bin hex lss clean mostlyclean
-BUILD_TARGETS += program program-ee
+BUILD_TARGETS  = all size symbol-sizes mostlyclean clean indent elf hex bin eep lss sym tos program program-ee
 
 # phony build targets for this module
 .PHONY: $(BUILD_TARGETS)

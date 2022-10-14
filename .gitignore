@@ -1,10 +1,11 @@
+*.o
+*.d
 *.lss
 *.bin
 *.elf
 *.hex
 *.eep
 *.map
-*.o
-*.d
 *.sym
+*.tos
 obj/
