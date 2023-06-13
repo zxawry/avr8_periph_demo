@@ -5,6 +5,7 @@
 
 #include "twi.h"
 
+#include <stdlib.h>	// NULL
 #include <avr/pgmspace.h>
 
 #define SSD1306_TWI_ADDR (0x3C)
@@ -48,16 +49,14 @@ void ssd1306_init(void)
 
 	twi_init();
 
-	cmd = pgm_read_byte(&(SSD1306_INIT_SEQ[0]));
-	_ssd1306_send(cmd, TWI_NOSTOP);
+	twi_write_bytes(SSD1306_TWI_ADDR, NULL, 0, TWI_NOSTOP);
 
-	for (i = 1; i < SSD1306_INIT_SEQ_LEN - 1; i++) {
+	for (i = 0; i < SSD1306_INIT_SEQ_LEN; i++) {
 		cmd = pgm_read_byte(&(SSD1306_INIT_SEQ[i]));
 		_ssd1306_send(cmd, TWI_NOSTART | TWI_NOSTOP);
 	}
 
-	cmd = pgm_read_byte(&(SSD1306_INIT_SEQ[SSD1306_INIT_SEQ_LEN - 1]));
-	_ssd1306_send(cmd, TWI_NOSTART);
+	twi_write_bytes(SSD1306_TWI_ADDR, NULL, 0, TWI_NOSTART);
 }
 
 void ssd1306_normal_display(void)
@@ -78,10 +77,11 @@ void ssd1306_draw_column(uint8_t data)
 	cmd = SSD1306_DATA_STREAM;
 	twi_write_bytes(SSD1306_TWI_ADDR, &cmd, 1, TWI_NOSTOP);
 
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < 8; i++) {
 		twi_write_bytes(SSD1306_TWI_ADDR, &data, 1, TWI_NOSTART | TWI_NOSTOP);
 	}
-	twi_write_bytes(SSD1306_TWI_ADDR, &data, 1, TWI_NOSTART);
+
+	twi_write_bytes(SSD1306_TWI_ADDR, NULL, 0, TWI_NOSTART);
 }
 
 void _ssd1306_send(uint8_t cmd, uint8_t flags)
