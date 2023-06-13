@@ -18,6 +18,7 @@ SRC += src/queue.c
 SRC += src/twi.c
 SRC += src/ds1307.c
 SRC += src/convert.c
+SRC += src/ssd1306.c
 SRCDIR = src
 
 # object files and directories
