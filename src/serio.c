@@ -66,6 +66,15 @@ int xputc(char c)
 	return e;
 }
 
+int xputs_P(PGM_P s)
+{
+	char c;
+
+	while ((c = pgm_read_byte(s++)))
+		xputc(c);
+	return 0;
+}
+
 int xputs(const char *s)
 {
 	while (*s)

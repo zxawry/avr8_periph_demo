@@ -3,6 +3,7 @@
 
 #include "config.h"
 
+#include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
 #include "usart.h"
@@ -27,10 +28,10 @@ int main(void)
 
 	periph_init();
 
-	xputs("\n\nWelcome to AVR shell!\n\n");
+	xputs_P(PSTR("\n\nWelcome to AVR shell!\n\n"));
 
 	for (;;) {
-		xputs("avr$ ");
+		xputs_P(PSTR("avr$ "));
 		if (xgets(buffer, 128) && buffer[0] != '\n') {
 			switch (buffer[0]) {
 			case 'i':
@@ -56,7 +57,7 @@ int main(void)
 				break;
 			default:
 				// command not found
-				xputs("Unknown command\n");
+				xputs_P(PSTR("Unknown command\n"));
 			}
 		}
 	}

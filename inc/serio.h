@@ -5,10 +5,12 @@
 #define SERIO_H_
 
 #include <stdint.h>
+#include <avr/pgmspace.h>
 
 int xputc(char c);
 int xgetc(void);
 int xputs(const char *s);
+int xputs_P(PGM_P s);
 int xgets(char *b, int n);
 void put_dump(uint8_t * b, uint8_t n);
 void put_dump_null(uint8_t * b, uint8_t n);
