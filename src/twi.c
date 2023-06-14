@@ -48,6 +48,9 @@ ISR(TWI_vect, ISR_BLOCK)
 
 void twi_init(void)
 {
+	if (TWBR != 0)
+		return ;
+
 	_busy = 0;
 
 	TWSR = 0;

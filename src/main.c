@@ -8,10 +8,13 @@
 
 #include "usart.h"
 #include "serio.h"
+#include "ds1307.h"
 #include "ssd1306.h"
 #include "convert.h"
 
 static inline void periph_init(void);
+static void display_date_time(void);
+static void update_date_time(char * string);
 
 static inline void periph_init(void)
 {
@@ -19,7 +22,37 @@ static inline void periph_init(void)
 	usart_init();
 	sei();
 
+	ds1307_init();
 	ssd1306_init();
+}
+
+static void display_date_time(void)
+{
+	char string[32];
+
+	ds1307_get_time(string);
+
+	xputs(string);
+	xputc('\n');
+
+	string[10] = '\0';
+
+	ssd1306_set_page(0x02, 0x07);
+	ssd1306_set_column(0x18, 0x67);
+	ssd1306_draw_string(string, 0x00);
+
+	ssd1306_set_page(0x05, 0x07);
+	ssd1306_set_column(0x20, 0x5f);
+	ssd1306_draw_string(string + 11, 0x00);
+
+	ssd1306_set_page(0x00, 0x07);
+	ssd1306_set_column(0x00, 0x7f);
+}
+
+static void update_date_time(char * string)
+{
+	ds1307_set_time(string);
+	display_date_time();
 }
 
 int main(void)
@@ -55,9 +88,15 @@ int main(void)
 			case 'c':
 				ssd1306_set_column(str_to_bin(buffer + 2), str_to_bin(buffer + 5));
 				break;
+			case 'd':
+				display_date_time();
+				break;
+			case 'u':
+				update_date_time(buffer + 2);
+				break;
 			default:
 				// command not found
-				xputs_P(PSTR("Unknown command\n"));
+				xputs_P(PSTR("Unknown command!\n"));
 			}
 		}
 	}
