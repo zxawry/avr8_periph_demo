@@ -12,7 +12,7 @@ int xgetc(void);
 int xputs(const char *s);
 int xputs_P(PGM_P s);
 int xgets(char *b, int n);
-void put_dump(uint8_t * b, uint8_t n);
-void put_dump_null(uint8_t * b, uint8_t n);
+int xgets_I(char *b, int n);
+void put_dump(uint8_t * b, uint8_t n, uint8_t t);
 
 #endif				// SERIO_H_

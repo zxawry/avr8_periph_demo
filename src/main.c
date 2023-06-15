@@ -3,6 +3,7 @@
 
 #include "config.h"
 
+#include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
@@ -14,12 +15,25 @@
 
 static inline void periph_init(void);
 static void display_date_time(void);
-static void update_date_time(char * string);
+
+static uint8_t flag = 0;
+
+ISR(INT0_vect, ISR_BLOCK)
+{
+	flag = 0xff;
+}
 
 static inline void periph_init(void)
 {
 	cli();
 	usart_init();
+
+	// set INT0 to trigger on rising edge
+	MCUCR |= _BV(ISC01) | _BV(ISC00);
+
+	// enable INT0 interrupt service routine
+	GICR |= _BV(INT0);
+
 	sei();
 
 	ds1307_init();
@@ -31,9 +45,6 @@ static void display_date_time(void)
 	char string[32];
 
 	ds1307_get_time(string);
-
-	xputs(string);
-	xputc('\n');
 
 	string[10] = '\0';
 
@@ -49,12 +60,6 @@ static void display_date_time(void)
 	ssd1306_set_column(0x00, 0x7f);
 }
 
-static void update_date_time(char * string)
-{
-	ds1307_set_time(string);
-	display_date_time();
-}
-
 int main(void)
 {
 	char buffer[128];
@@ -62,10 +67,14 @@ int main(void)
 	periph_init();
 
 	xputs_P(PSTR("\n\nWelcome to AVR shell!\n\n"));
+	xputs_P(PSTR("avr$ "));
 
 	for (;;) {
-		xputs_P(PSTR("avr$ "));
-		if (xgets(buffer, 128) && buffer[0] != '\n') {
+		if (flag == 0xff) {
+			flag = 0x00;
+			display_date_time();
+		}
+		if (xgets_I(buffer, 128)) {
 			switch (buffer[0]) {
 			case 'i':
 				ssd1306_inverse_display();
@@ -92,12 +101,16 @@ int main(void)
 				display_date_time();
 				break;
 			case 'u':
-				update_date_time(buffer + 2);
+				ds1307_set_time(buffer + 2);
+				break;
+			case '\n':
+				// empty command line
 				break;
 			default:
 				// command not found
 				xputs_P(PSTR("Unknown command!\n"));
 			}
+			xputs_P(PSTR("avr$ "));
 		}
 	}
 
