@@ -1,0 +1,11 @@
+# avr8_periph_demo
+
+There in nothing too fancy here. Just me dabbling with an ATmega8A and testing
+out different peripherals.
+
+So far, I have hooked up a DS1307 RTC module and an SSD1306 display to the MCU.
+As you can guess, it's going to be a digital clock, fairly simple as that. For
+setting time and stuffs on it, I have used the serial port or USART as the
+datasheet calls it. I tried my best to implement most of the things using
+interrupts instead of polling methods. However, at the end I resorted to polling
+some flags that are only set within ISRs and reset during the main loop.
