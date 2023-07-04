@@ -49,7 +49,7 @@ ISR(TWI_vect, ISR_BLOCK)
 void twi_init(void)
 {
 	if (TWBR != 0)
-		return ;
+		return;
 
 	_busy = 0;
 
@@ -62,7 +62,7 @@ int twi_transfer(uint8_t addr, uint8_t * data, uint8_t len, uint8_t flags)
 	_busy = 0xff;
 
 	_cnt = 0;
-	_len = len - (addr & 0x01); // send nack one byte sooner on reads
+	_len = len - (addr & 0x01);	// send nack one byte sooner on reads
 	_data = data;
 
 	// start transmission

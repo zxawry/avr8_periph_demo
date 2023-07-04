@@ -7,7 +7,9 @@
 #include <stdint.h>
 
 // configure size of the queue.
-#define QUEUE_SIZE (64)
+#ifndef QUEUE_SIZE
+#define QUEUE_SIZE (64U)
+#endif
 
 // assume queue size is a power of two.
 #define QUEUE_SIZE_MASK (QUEUE_SIZE - 1)

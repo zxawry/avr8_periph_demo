@@ -8,6 +8,13 @@
 
 #define DS1307_TWI_ADDR (0x68)
 
+#define DS1307_SQW_MODE_LOW (0x00)
+#define DS1307_SQW_MODE_1000HZ (0x10)
+#define DS1307_SQW_MODE_4096HZ (0x11)
+#define DS1307_SQW_MODE_8192HZ (0x12)
+#define DS1307_SQW_MODE_32768HZ (0x13)
+#define DS1307_SQW_MODE_HIGH (0x80)
+
 static void _str_to_reg(const char *str, uint8_t * reg);
 static void _reg_to_str(const uint8_t * reg, char *str);
 
@@ -16,7 +23,7 @@ static void _str_to_reg(const char *str, uint8_t * reg)
 	reg[7] = str_to_bcd(&str[2]);	// year
 	reg[6] = str_to_bcd(&str[5]);	// mon
 	reg[5] = str_to_bcd(&str[8]);	// mday
-	reg[4] = 1;			// wday
+	reg[4] = 1;		// wday
 	reg[3] = str_to_bcd(&str[11]);	// hour
 	reg[2] = str_to_bcd(&str[14]);	// min
 	reg[1] = str_to_bcd(&str[17]);	// sec
@@ -29,7 +36,7 @@ static void _reg_to_str(const uint8_t * reg, char *str)
 	bcd_to_str(reg[5], &str[8]);
 	bcd_to_str(reg[3], &str[11]);
 	bcd_to_str(reg[2], &str[14]);
-	bcd_to_str(reg[1] & 0x7f, &str[17]); // mask clock halt bit
+	bcd_to_str(reg[1] & 0x7f, &str[17]);	// mask clock halt bit
 
 	str[0] = '2';
 	str[1] = '0';

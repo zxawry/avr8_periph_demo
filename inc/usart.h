@@ -4,6 +4,10 @@
 #ifndef USART_H_
 #define USART_H_
 
+#ifndef USART_BAUD
+#define USART_BAUD (9600U)
+#endif
+
 // initiate USART peripheral.
 void usart_init(void);
 

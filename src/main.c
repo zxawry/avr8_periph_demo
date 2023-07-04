@@ -59,7 +59,7 @@ static void display_status(void)
 	ssd1306_draw_string(string + 11, 0x00);
 
 	if (ds18b20_is_busy())
-		return ;
+		return;
 
 	ds18b20_get_temperature(string);
 	ds18b20_start_conversion();
@@ -110,10 +110,12 @@ int main(void)
 				ssd1306_draw_string(buffer + 2, 0x00);
 				break;
 			case 'p':
-				ssd1306_set_page(str_to_bin(buffer + 2), str_to_bin(buffer + 5));
+				ssd1306_set_page(str_to_bin(buffer + 2),
+						 str_to_bin(buffer + 5));
 				break;
 			case 'c':
-				ssd1306_set_column(str_to_bin(buffer + 2), str_to_bin(buffer + 5));
+				ssd1306_set_column(str_to_bin(buffer + 2),
+						   str_to_bin(buffer + 5));
 				break;
 			case 'd':
 				display_status();

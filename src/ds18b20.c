@@ -75,7 +75,7 @@ static void _send(const uint8_t data)
 	// pull the bus down.
 	DDRB |= _BV(PB0);
 	PORTB &= ~_BV(PB0);
-		
+
 	if (data) {
 		// release the bus.
 		DDRB &= ~_BV(PB0);
@@ -87,7 +87,7 @@ static void _send(const uint8_t data)
 		// release the bus.
 		DDRB &= ~_BV(PB0);
 	}
-			
+
 	// wait for recovery time.
 	_delay_us(1);
 }
@@ -172,7 +172,7 @@ int ds18b20_init(void)
 
 int ds18b20_is_busy(void)
 {
-	return (int) (_recv() == 0);
+	return (int)(_recv() == 0);
 }
 
 int ds18b20_start_conversion(void)
@@ -187,10 +187,12 @@ int ds18b20_start_conversion(void)
 	return 0;
 }
 
-int ds18b20_get_temperature(char * str)
+int ds18b20_get_temperature(char *str)
 {
 	uint8_t b1;
 	uint8_t b2;
+
+	*str = 0;		// NULL
 
 	if (_reset())
 		return 1;
@@ -205,7 +207,7 @@ int ds18b20_get_temperature(char * str)
 	if (_read(&b2))
 		return 1;
 
-	tmp_to_str((int16_t)(b2 << 8 | b1), str);
+	tmp_to_str((int16_t) (b2 << 8 | b1), str);
 
 	return 0;
 }
