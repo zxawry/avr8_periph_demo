@@ -6,6 +6,8 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
+#include <convert.h>
+
 #define DS18B20_CMD_CONVERT            (0x44)
 #define DS18B20_CMD_RSCRATCHPAD        (0xbe)
 #define DS18B20_CMD_WRITESCRATCHPAD    (0x4e)
@@ -27,11 +29,22 @@
 #define DS18B20_DELAY_RW_PULSE         (1U)
 #define DS18B20_DELAY_R_RECOVER        (DS18B20_DELAY_SLOT - DS18B20_SAMPLE_TIME)
 
-static uint8_t _init(void);
-static uint8_t _read(void);
-static void _write(const uint8_t b);
+// send a reset pulse to the bus.
+static uint8_t _reset(void);
 
-static uint8_t _init(void)
+// send one bit to the bus.
+static void _send(const uint8_t data);
+
+// receive one bit from the bus.
+static uint8_t _recv(void);
+
+// write one byte to the bus.
+static int _write(const uint8_t data);
+
+// read one byte from the bus.
+static int _read(uint8_t * data);
+
+static uint8_t _reset(void)
 {
 	uint8_t res;
 
@@ -57,7 +70,29 @@ static uint8_t _init(void)
 	return res;
 }
 
-static uint8_t _read(void)
+static void _send(const uint8_t data)
+{
+	// pull the bus down.
+	DDRB |= _BV(PB0);
+	PORTB &= ~_BV(PB0);
+		
+	if (data) {
+		// release the bus.
+		DDRB &= ~_BV(PB0);
+
+		_delay_us(DS18B20_DELAY_SLOT);
+	} else {
+		_delay_us(DS18B20_DELAY_SLOT);
+
+		// release the bus.
+		DDRB &= ~_BV(PB0);
+	}
+			
+	// wait for recovery time.
+	_delay_us(1);
+}
+
+static uint8_t _recv(void)
 {
 	uint8_t b;
 
@@ -80,55 +115,25 @@ static uint8_t _read(void)
 	return b;
 }
 
-static void _write(const uint8_t data)
-{
-	// pull the bus down.
-	DDRB |= _BV(PB0);
-	PORTB &= ~_BV(PB0);
-		
-	if (data) {
-		// release the bus.
-		DDRB &= ~_BV(PB0);
-
-		_delay_us(DS18B20_DELAY_SLOT);
-	} else {
-		_delay_us(DS18B20_DELAY_SLOT);
-
-		// release the bus.
-		DDRB &= ~_BV(PB0);
-	}
-			
-	// wait for recovery time.
-	_delay_us(1);
-}
-
-int ds18b20_init(void)
-{
-	if (_init())
-		return 1;
-
-	return 0;
-}
-
-int ds18b20_write(const uint8_t data)
+static int _write(const uint8_t data)
 {
 	uint8_t i;
 
 	for (i = 1; i > 0; i <<= 1) {
-		_write(data & i);
+		_send(data & i);
 	}
 
 	return i;
 }
 
-int ds18b20_read(uint8_t * data)
+static int _read(uint8_t * data)
 {
 	uint8_t i;
 
 	*data = 0;
 
 	for (i = 1; i > 0; i <<= 1) {
-		if (_read()) {
+		if (_recv()) {
 			*data |= i;
 		}
 	}
@@ -136,37 +141,64 @@ int ds18b20_read(uint8_t * data)
 	return i;
 }
 
-int ds18b20_temperature(int16_t * temperature)
+int ds18b20_init(void)
 {
-	uint8_t data;
-
-	*temperature = 0;
-
-	if (ds18b20_init())
+	if (_reset())
 		return 1;
-	if (ds18b20_write(DS18B20_CMD_SKIPROM))
+	if (_write(DS18B20_CMD_SKIPROM))
 		return 1;
-	if (ds18b20_write(DS18B20_CMD_CONVERT))
+	if (_write(DS18B20_CMD_WRITESCRATCHPAD))
 		return 1;
 
-	//_delay_us(DS18B20_DELAY_CONVERT + 250);
-	while (_read() == 0) {
+	if (_write(0x00))
+		return 1;
+	if (_write(0x00))
+		return 1;
+	if (_write(0x3f))
+		return 1;
+
+	if (_reset())
+		return 1;
+	if (_write(DS18B20_CMD_SKIPROM))
+		return 1;
+	if (_write(DS18B20_CMD_COPYSCRATCHPAD))
+		return 1;
+
+	while (_recv() == 0) {
 	}
 
-	if (ds18b20_init())
+	return 0;
+}
+
+int ds18b20_get_temperature(char * str)
+{
+	uint8_t b1;
+	uint8_t b2;
+
+	if (_reset())
 		return 1;
-	if (ds18b20_write(DS18B20_CMD_SKIPROM))
+	if (_write(DS18B20_CMD_SKIPROM))
 		return 1;
-	if (ds18b20_write(DS18B20_CMD_RSCRATCHPAD))
+	if (_write(DS18B20_CMD_CONVERT))
 		return 1;
 
-	if (ds18b20_read(&data))
-		return 1;
-	*temperature = (int16_t) data;
+	while (_recv() == 0) {
+	}
 
-	if (ds18b20_read(&data))
+	if (_reset())
 		return 1;
-	*temperature |= (int16_t) data << 8;
+	if (_write(DS18B20_CMD_SKIPROM))
+		return 1;
+	if (_write(DS18B20_CMD_RSCRATCHPAD))
+		return 1;
+
+	if (_read(&b1))
+		return 1;
+
+	if (_read(&b2))
+		return 1;
+
+	tmp_to_str((int16_t)(b2 << 8 | b1), str);
 
 	return 0;
 }

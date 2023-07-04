@@ -5,27 +5,6 @@
 
 #include <avr/pgmspace.h>
 
-/*
-const uint8_t FRACTION_LOOKUP_TABLE[][4] PROGMEM = {
-	"0000",		// 0000
-	"0625",		// 0001
-	"1250",		// 0010
-	"1875",		// 0011
-	"2500",		// 0100
-	"3125",		// 0101
-	"3750",		// 0110
-	"4375",		// 0111
-	"5000",		// 1000
-	"5625",		// 1001
-	"6250",		// 1010
-	"6875",		// 1011
-	"7500",		// 1100
-	"8125",		// 1101
-	"8750",		// 1110
-	"9375",		// 1111
-};
-*/
-
 const uint8_t FRACTION_LOOKUP_TABLE[][2] PROGMEM = {
 	"00",		// 0000
 	"00",		// 0001
@@ -44,7 +23,6 @@ const uint8_t FRACTION_LOOKUP_TABLE[][2] PROGMEM = {
 	"75",		// 1110
 	"75",		// 1111
 };
-
 
 uint8_t asc_to_bin(char asc)
 {
@@ -118,16 +96,16 @@ void tmp_to_str(int16_t tmp, char *str)
 		d -= 100;
 		i++;
 	}
-	//if (i > 0)
-	*str++ = i + '0';
+	if (i > 0)
+		*str++ = i + '0';
 
 	i = 0;
 	while (d >= 10) {
 		d -= 10;
 		i++;
 	}
-	//if (!((*(str - 1) == '-' || *(str - 1) == '+') && i == 0))
-	*str++ = i + '0';
+	if (!((*(str - 1) == '-' || *(str - 1) == '+') && i == 0))
+		*str++ = i + '0';
 
 	*str++ = d + '0';
 
@@ -135,8 +113,6 @@ void tmp_to_str(int16_t tmp, char *str)
 
 	*str++ = pgm_read_byte(&(FRACTION_LOOKUP_TABLE[f][0]));
 	*str++ = pgm_read_byte(&(FRACTION_LOOKUP_TABLE[f][1]));
-	//*str++ = pgm_read_byte(&(FRACTION_LOOKUP_TABLE[f][2]));
-	//*str++ = pgm_read_byte(&(FRACTION_LOOKUP_TABLE[f][3]));
 
 	*str++ = 0; // NULL
 }

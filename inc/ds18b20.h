@@ -7,8 +7,6 @@
 #include <stdint.h>
 
 int ds18b20_init(void);
-int ds18b20_write(uint8_t data);
-int ds18b20_read(uint8_t * data);
-int ds18b20_temperature(int16_t * temperature);
+int ds18b20_get_temperature(char * str);
 
 #endif
