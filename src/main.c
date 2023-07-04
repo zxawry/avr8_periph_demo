@@ -58,7 +58,11 @@ static void display_status(void)
 	ssd1306_set_column(0x20, 0x5f);
 	ssd1306_draw_string(string + 11, 0x00);
 
+	if (ds18b20_is_busy())
+		return ;
+
 	ds18b20_get_temperature(string);
+	ds18b20_start_conversion();
 
 	ssd1306_set_page(0x05, 0x07);
 	ssd1306_set_column(0x28, 0x5f);

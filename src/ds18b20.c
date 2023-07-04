@@ -170,11 +170,13 @@ int ds18b20_init(void)
 	return 0;
 }
 
-int ds18b20_get_temperature(char * str)
+int ds18b20_is_busy(void)
 {
-	uint8_t b1;
-	uint8_t b2;
+	return (int) (_recv() == 0);
+}
 
+int ds18b20_start_conversion(void)
+{
 	if (_reset())
 		return 1;
 	if (_write(DS18B20_CMD_SKIPROM))
@@ -182,8 +184,13 @@ int ds18b20_get_temperature(char * str)
 	if (_write(DS18B20_CMD_CONVERT))
 		return 1;
 
-	while (_recv() == 0) {
-	}
+	return 0;
+}
+
+int ds18b20_get_temperature(char * str)
+{
+	uint8_t b1;
+	uint8_t b2;
 
 	if (_reset())
 		return 1;
