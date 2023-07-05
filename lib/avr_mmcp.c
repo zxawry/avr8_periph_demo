@@ -16,11 +16,17 @@
 #define	FORWARD(d)	xmit(d)				/* Data streaming function (console out) */
 
 void xmit (char);			/* suart.S: Send a byte via software UART */
-void dly_100us (void);		/* usi.S: Delay 100 microseconds */
-void init_spi (void);		/* usi.S: Initialize MMC control ports */
-void xmit_spi (BYTE d);		/* usi.S: Send a byte to the MMC */
-BYTE rcv_spi (void);		/* usi.S: Send a 0xFF to the MMC and get the received byte */
+void dly_100us (void);		/* spi.S: Delay 100 microseconds */
+void init_spi (void);		/* spi.S: Initialize MMC control ports */
+void xmit_spi (BYTE d);		/* spi.S: Send a byte to the MMC */
+BYTE rcv_spi (void);		/* spi.S: Send a 0xFF to the MMC and get the received byte */
 
+#include "serio.h"
+
+void xmit (char ch)
+{
+	xputc(ch);
+}
 
 /*--------------------------------------------------------------------------
 

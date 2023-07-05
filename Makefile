@@ -20,6 +20,9 @@ SRC += src/ds1307.c
 SRC += src/convert.c
 SRC += src/ssd1306.c
 SRC += src/ds18b20.c
+SRC += lib/avr_mmcp.c
+SRC += lib/pff.c
+SRC += lib/spi.S
 SRCDIR = src
 
 # object files and directories
@@ -37,12 +40,12 @@ OBJDUMP = avr-objdump
 # generic compiler flags
 CC_FLAGS := -pipe -gdwarf-2 -g$(DBG) -O$(OPT)
 CC_FLAGS += -mmcu=$(MCU) -DF_CPU=$(F_CPU)
-CC_FLAGS += -Wall -Wextra -Werror -Wshadow -Wformat=2 -Wundef -Wstrict-prototypes
+CC_FLAGS += -Wall -Wextra -Werror -Wshadow -Wformat=2 -Wundef -Wstrict-prototypes -Wno-shift-count-overflow
 CC_FLAGS += -fpack-struct -fshort-enums
 CC_FLAGS += -ffunction-sections -fdata-sections
 CC_FLAGS += -funsigned-char -funsigned-bitfields
 CC_FLAGS += -fno-common -fno-jump-tables -fno-strict-aliasing
-CC_FLAGS += $(addprefix -I,$(INCDIR))
+CC_FLAGS += $(addprefix -I,$(INCDIR)) -I.
 
 # generic loader flags
 LD_FLAGS := -mmcu=$(MCU)

@@ -8,15 +8,18 @@
 
 
 ;---------------------------------------------------------------------------;
-; Initialize USI
+; Initialize SPI
 ;
 ; void init_spi (void);
 
 .global init_spi
 .func init_spi
 init_spi:
-	ldi	r24, 0b00011000
-	out	_SFR_IO_ADDR(USICR), r24
+	in	r24, _SFR_IO_ADDR(DDRB)
+	ori	r24, 0b00101100
+	out	_SFR_IO_ADDR(DDRB), r24
+	ldi	r24, 0b01010000
+	out	_SFR_IO_ADDR(SPCR), r24
 	ret
 .endfunc
 
@@ -29,8 +32,10 @@ init_spi:
 .global dly_100us
 .func dly_100us
 dly_100us:
-	ldi	r24, lo8(F_CPU / 100000)	/* Loop counter */
-	ldi	r25, hi8(F_CPU / 100000)
+	;ldi	r24, lo8(F_CPU / 100000)	/* Loop counter */
+	ldi	r24, lo8(111)	/* Loop counter */
+	;ldi	r25, hi8(F_CPU / 100000)
+	ldi	r25, hi8(111)
 1:	sbiw	r30, 1		/* 10 clocks a loop */
 	sbiw	r30, 1
 	sbiw	r30, 1
@@ -61,14 +66,13 @@ rcv_spi:
 .global xmit_spi
 .func xmit_spi
 xmit_spi:
-	out	_SFR_IO_ADDR(USIDR), r24	; Put a byte to be transmit
+	out	_SFR_IO_ADDR(SPDR), r24		; Put a byte to be transmit
 
-	ldi	r24, 0b000100			; PB2(SCK)
-	.rept 16
-	out	_SFR_IO_ADDR(PINB), r24		; Toggle SCK 16 times
-	.endr
-	nop
-	in	r24, _SFR_IO_ADDR(USIDR)	; Get received byte
+1:	in	r25, _SFR_IO_ADDR(SPSR)
+	sbrs	r25, SPIF
+	rjmp	1b
+
+	in	r24, _SFR_IO_ADDR(SPDR)		; Get received byte
 	ret
 .endfunc
 
