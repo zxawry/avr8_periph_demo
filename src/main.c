@@ -13,7 +13,6 @@
 #include "serio.h"
 #include "convert.h"
 
-#include "lib/pff.h"
 #include "lib/diskio.h"
 
 static inline void periph_init(void);
@@ -28,8 +27,10 @@ static inline void periph_init(void)
 int main(void)
 {
 	BYTE res;
-	UINT s;
-	FATFS fs;
+	BYTE data[128];
+	//UINT count;
+	//UINT offset;
+	//DWORD sector;
 
 	char buffer[128];
 
@@ -45,28 +46,24 @@ int main(void)
 				res = disk_initialize();
 				put_dump(&res, 1, 0x00);
 				break;
-			case 'm':
-				res = pf_mount(&fs);
-				put_dump(&res, 1, 0x00);
-				break;
-			case 'o':
-				res = pf_open(buffer + 2);
-				put_dump(&res, 1, 0x00);
-				break;
 			case 'r':
-				res = pf_read(0, 128, &s);
+				res = disk_readp(data, 1, 0, 128);
 				put_dump(&res, 1, 0x00);
+				put_dump(data, 128, 0x00);
+				data[127] = 0;
+				xputs((char *) data);
+				xputc('\n');
 				break;
 			case 'w':
-				res = pf_write(buffer + 2, strlen(buffer + 2), &s);
-				put_dump(&res, 1, 0x00);
-				break;
-			case 'e':
-				res = pf_write(0, 0, &s);
+				res = disk_writep((uint8_t *) buffer + 2, strlen(buffer + 2));
 				put_dump(&res, 1, 0x00);
 				break;
 			case 's':
-				res = pf_lseek(str_to_bin(buffer + 2));
+				res = disk_writep(0, 1);
+				put_dump(&res, 1, 0x00);
+				break;
+			case 'e':
+				res = disk_writep(0, 0);
 				put_dump(&res, 1, 0x00);
 				break;
 			case '\n':

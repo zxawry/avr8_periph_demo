@@ -21,7 +21,6 @@ SRC += src/convert.c
 SRC += src/ssd1306.c
 SRC += src/ds18b20.c
 SRC += lib/avr_mmcp.c
-SRC += lib/pff.c
 SRC += lib/spi.S
 SRCDIR = src
 
