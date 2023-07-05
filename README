@@ -1,11 +1,23 @@
-# avr8_periph_demo
+Title: avr8_periph_demo
 
-There in nothing too fancy here. Just me dabbling with an ATmega8A and testing
-out different peripherals.
+Brief:
+	There in nothing too fancy here. Just me dabbling with an ATmega8A and
+	testing out different peripherals.
 
-So far, I have hooked up a DS1307 RTC module and an SSD1306 display to the MCU.
-As you can guess, it's going to be a digital clock, fairly simple as that. For
-setting time and stuffs on it, I have used the serial port or USART as the
-datasheet calls it. I tried my best to implement most of the things using
-interrupts instead of polling methods. However, at the end I resorted to polling
-some flags that are only set within ISRs and reset during the main loop.
+Desc v0.0.1:
+	So far, I have hooked up a DS1307 RTC module and a SSD1306 display to
+	the MCU. As you can guess, it's going to be a digital clock, fairly
+	simple as that. In order to set time and other dynamic settings, I have
+	used the serial interface (USART as in the datasheet). I tried my best
+	to implement most of the things using interrupts instead of lame polling
+	functions. However, at the end I resorted to polling some global flags
+	which are only set within ISRs and reset during the main loop.
+
+Desc v0.0.2:
+	Well, I am so amazed by the flawless performance of this DS18B20 chip.
+	For one thing, it only uses one single wire for communications and it
+	occured to me that countless trials are expected for a clean read-out
+	due to noisy signals and all. However, I was proved wrong with smooth
+	temperature read-outs, respecting the recommanded delay durations in the
+	datasheet, of course. Now, I have the current temperature displayed along
+	with the date and time from pervious version.
