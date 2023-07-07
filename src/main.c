@@ -4,14 +4,12 @@
 #include "config.h"
 
 #include <string.h>
-#include <avr/io.h>
-#include <avr/pgmspace.h>
+#include <stdlib.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
 
 #include "usart.h"
 #include "serio.h"
-#include "convert.h"
+#include "zerofs.h"
 
 #include "lib/diskio.h"
 
@@ -26,13 +24,12 @@ static inline void periph_init(void)
 
 int main(void)
 {
-	BYTE res;
-	BYTE data[128];
-	//UINT count;
-	//UINT offset;
-	//DWORD sector;
-
+	uint8_t res;
+	uint32_t i;
 	char buffer[128];
+	char *p;
+
+	DWORD sector;
 
 	periph_init();
 
@@ -43,35 +40,47 @@ int main(void)
 		if (xgets_I(buffer, 128)) {
 			switch (buffer[0]) {
 			case 'i':
-				res = disk_initialize();
-				put_dump(&res, 1, 0x00);
+				res = zerofs_init();
+				put_dump(&res, 1);
+				break;
+			case 'm':
+				res = zerofs_mount();
+				put_dump(&res, 1);
+				break;
+			case 'c':
+				res = zerofs_create();
+				put_dump(&res, 1);
 				break;
 			case 'r':
-				res = disk_readp(data, 1, 0, 128);
-				put_dump(&res, 1, 0x00);
-				put_dump(data, 128, 0x00);
-				data[127] = 0;
-				xputs((char *) data);
+				i = atol(buffer + 2);
+				res = zerofs_read(buffer, i, 128);
+				put_dump(&res, 1);
+				put_dump(buffer, 128);
+				buffer[127] = 0;
+				xputs(buffer);
 				xputc('\n');
 				break;
 			case 'w':
-				res = disk_writep((uint8_t *) buffer + 2, strlen(buffer + 2));
-				put_dump(&res, 1, 0x00);
+				p = buffer + 1;
+				while (*++p != ' ');
+				*p++ = 0; // NULL
+				put_dump((uint8_t *) p, 128);
+				i = atol(buffer + 2);
+				res = zerofs_write(p, i, strlen(p));
+				put_dump(&res, 1);
 				break;
 			case 's':
-				res = disk_writep(0, 1);
-				put_dump(&res, 1, 0x00);
-				break;
-			case 'e':
-				res = disk_writep(0, 0);
-				put_dump(&res, 1, 0x00);
-				break;
-			case '\n':
-				// empty command line
+				p = buffer + 2;
+				while (*p++ != '\n');
+				*p = 0;
+				sector = atol(buffer + 2);
+				res = zerofs_print(sector);
+				put_dump(&res, 1);
 				break;
 			default:
 				// command not found
-				xputs_P(PSTR("Unknown command!\n"));
+				if (buffer[0])
+					xputs_P(PSTR("Unknown command!\n"));
 			}
 			xputs_P(PSTR("avr$ "));
 		}

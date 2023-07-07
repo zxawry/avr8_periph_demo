@@ -98,7 +98,7 @@ int xgets(char *b, int n)
 		if (c < 0)
 			break;
 		if (c == '\n') {
-			b[i++] = c;
+			//b[i++] = c;
 			break;
 		}
 		if ((c == '\b' || c == '\x7f') && i > 0) {
@@ -132,7 +132,7 @@ int xgets_I(char *b, int n)
 		xputc('\b');
 		return 0;
 	}
-	if (((c >= ' ' && c <= '\x7e') || c >= '\xa0') && i < n - 2) {
+	if (((c >= ' ' && c <= '\x7e') || c >= '\xa0') && i < n - 1) {
 		b[i++] = c;
 		xputc(c);
 		return 0;
@@ -141,7 +141,7 @@ int xgets_I(char *b, int n)
 		c = '\n';
 	if (c == '\n') {
 		xputc(c);
-		b[i++] = c;
+		//b[i++] = c;
 		b[i] = '\0';
 		i = 0;
 		return (int)(c == '\n');
