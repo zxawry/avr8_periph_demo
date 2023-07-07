@@ -11,24 +11,29 @@
 #define L(b) C(M(b))
 #define H(b) C(M(S(b)))
 
-void put_dump(uint8_t * b, uint8_t n, uint8_t t)
+void put_dump(void * b, uint8_t n)
 {
 	uint8_t e;
-	uint8_t i = 0;
+	uint8_t i;
+	uint8_t *p;
 
-	while (n > 0 && (t != 0xff || b[i] != '\0')) {
+	i = 0;
+	p = (uint8_t *) b;
+	while (i < n) {
 		xputc('0');
 		xputc('x');
 		xputc(H(i));
 		xputc(L(i));
 		xputc('\t');
-		e = (n < 8) ? n : 8;
-		for (; e > 0; e--, i++, n--) {
-			if (t == 0xff && b[i] == '\0')
-				break;
-			xputc(H(b[i]));
-			xputc(L(b[i]));
+		for (e = 0, i = i; e < 8; e++, i++) {
 			xputc(' ');
+			xputc((i < n) ? H(p[i]) : ' ');
+			xputc((i < n) ? L(p[i]) : ' ');
+		}
+		xputc('\t');
+		for (e = 0, i -= 8; e < 8; e++, i++) {
+			if (i < n)
+				xputc(((p[i] >= 0x20) && (p[i] < 0x7F)) ? p[i] : '.');
 		}
 		xputc('\n');
 	}
