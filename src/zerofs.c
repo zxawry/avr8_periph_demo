@@ -107,24 +107,25 @@ uint8_t zerofs_read(char * data, uint32_t index, uint8_t count)
 	uint8_t res;
 	uint32_t sector;
 	uint16_t offset;
+	uint16_t i;
 
-	sector = (index / 512) + ZEROFS_DATA_SECTOR_START;
-	offset = index % 512;
+	while (count) {
+		sector = (index / 512) + ZEROFS_DATA_SECTOR_START;
+		offset = index % 512;
 
-	if (sector > ZEROFS_DATA_SECTOR_END || sector < ZEROFS_DATA_SECTOR_START)
-		return RES_SECTOR_OUT_OF_RANGE;
+		if (sector > ZEROFS_DATA_SECTOR_END || sector < ZEROFS_DATA_SECTOR_START)
+			return RES_SECTOR_OUT_OF_RANGE;
 
-	if (count > 512 - offset) { // check for cross sector read
-		res = disk_readp((uint8_t *) data, sector, offset, 512 - offset);
+		i = (count > 512 - offset) ? 512 - offset : count;
+
+		res = disk_readp((uint8_t *) data, sector, offset, i);
 		if (res)
 			return res;
-		count -= (512 - offset);
-		data += (512 - offset);
-	}
 
-	res = disk_readp((uint8_t *) data, sector + 1, 0, count);
-	if (res)
-		return res;
+		index += i;
+		count -= i;
+		data += i;
+	}
 
 	return 0;
 }
@@ -133,58 +134,38 @@ uint8_t zerofs_write(char * data, uint32_t index, uint8_t count)
 {
 	uint8_t res;
 	char buffer[512];
-	char *p;
 	uint32_t sector;
 	uint16_t offset;
 
-	sector = (index / 512) + ZEROFS_DATA_SECTOR_START;
+	while (count) {
+		sector = (index / 512) + ZEROFS_DATA_SECTOR_START;
 
-	if (sector > ZEROFS_DATA_SECTOR_END || sector < ZEROFS_DATA_SECTOR_START)
-		return RES_SECTOR_OUT_OF_RANGE;
+		if (sector > ZEROFS_DATA_SECTOR_END || sector < ZEROFS_DATA_SECTOR_START)
+			return RES_SECTOR_OUT_OF_RANGE;
 
-	res = disk_readp((uint8_t *) buffer, sector, 0, 512);
-	if (res)
-		return res;
+		res = disk_readp((uint8_t *) buffer, sector, 0, 512);
+		if (res)
+			return res;
 
-	p = data;
-	offset = index % 512;
-	for (; offset < 512 && count; offset++, count--, p++)
-		buffer[offset] = *p;
+		offset = index % 512;
+		while (count && offset < 512) {
+			buffer[offset++] = *data++;
+			index++;
+			count--;
+		}
 
-	res = disk_writep(0, sector);
-	if (res)
-		return res;
+		res = disk_writep(0, sector);
+		if (res)
+			return res;
 
-	res = disk_writep((uint8_t *) buffer, 512);
-	if (res)
-		return res;
+		res = disk_writep((uint8_t *) buffer, 512);
+		if (res)
+			return res;
 
-	res = disk_writep(0, 0);
-	if (res)
-		return res;
-
-	if (count == 0)
-		return 0;
-
-	res = disk_readp((uint8_t *) buffer, sector + 1, 0, 512);
-	if (res)
-		return res;
-
-	offset = 0;
-	for (; offset < 512 && count; offset++, count--, p++)
-		buffer[offset] = *p;
-
-	res = disk_writep(0, sector + 1);
-	if (res)
-		return res;
-
-	res = disk_writep((uint8_t *) buffer, 512);
-	if (res)
-		return res;
-
-	res = disk_writep(0, 0);
-	if (res)
-		return res;
+		res = disk_writep(0, 0);
+		if (res)
+			return res;
+	}
 
 	return 0;
 }
@@ -203,19 +184,4 @@ uint8_t zerofs_print(uint32_t sector)
 	}
 
 	return 0;
-/*
-	uint8_t res;
-	uint8_t buffer[512];
-
-	res = disk_readp(buffer, sector, 0, 512);
-	if (res)
-		return res;
-
-	put_dump(buffer, 128);
-	put_dump(buffer + 128, 128);
-	put_dump(buffer + 256, 128);
-	put_dump(buffer + 384, 128);
-
-	return 0;
-*/
 }
