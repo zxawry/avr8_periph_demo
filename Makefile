@@ -132,8 +132,8 @@ clean: mostlyclean
 # enforce coding styles on source code files
 indent:
 	@echo $(MSG_INDENT_CMD) Indenting source files of \"$(PRG)\"
-	@$(INDENT) $(INDENT_FLAGS) $(shell find . -iname *.c -o -iname *.h)
-	@find . -iname *.c~ -o -iname *.h~ | xargs rm -f
+	@$(INDENT) $(INDENT_FLAGS) $(shell find ./src ./inc -iname *.c -o -iname *.h)
+	@find ./src ./inc -iname *.c~ -o -iname *.h~ | xargs rm -f
 
 # helper targets, to build a specific type of output file
 elf: $(PRG).elf

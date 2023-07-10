@@ -13,6 +13,6 @@ int xputs(const char *s);
 int xputs_P(PGM_P s);
 int xgets(char *b, int n);
 int xgets_I(char *b, int n);
-void put_dump(void * b, uint8_t n);
+void put_dump(void *b, uint8_t n);
 
 #endif				// SERIO_H_

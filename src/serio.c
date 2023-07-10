@@ -11,7 +11,7 @@
 #define L(b) C(M(b))
 #define H(b) C(M(S(b)))
 
-void put_dump(void * b, uint8_t n)
+void put_dump(void *b, uint8_t n)
 {
 	uint8_t e;
 	uint8_t i;
@@ -33,7 +33,8 @@ void put_dump(void * b, uint8_t n)
 		xputc('\t');
 		for (e = 0, i -= 8; e < 8; e++, i++) {
 			if (i < n)
-				xputc(((p[i] >= 0x20) && (p[i] < 0x7F)) ? p[i] : '.');
+				xputc(((p[i] >= 0x20) && (p[i] < 0x7F))
+				      ? p[i] : '.');
 		}
 		xputc('\n');
 	}
