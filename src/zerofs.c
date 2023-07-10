@@ -3,16 +3,15 @@
 
 #include "zerofs.h"
 
-#include <avr/pgmspace.h>
-
 #include "serio.h"
 #include "lib/diskio.h"
 
-#define ZEROFS_SIGN_TOKEN (0x69)
+#define ZEROFS_SIGN_TOKEN (0x69696969)
 #define ZEROFS_INFO_SECTOR_INDEX (1)
 #define ZEROFS_INFO_SECTOR_LENGTH (9)
 #define ZEROFS_DATA_SECTOR_START (2)
 #define ZEROFS_DATA_SECTOR_END (2097152)
+#define ZEROFS_DEFAULT_INDEX (0x00000000)
 
 typedef enum {
 	RES_DISK_NOINIT = 4,
@@ -21,14 +20,7 @@ typedef enum {
 	RES_OFFSET_OUT_OF_RANGE,
 } status_t;
 
-const uint8_t ZEROFS_INFO_SECTOR_CONTENT[] PROGMEM = {
-	ZEROFS_SIGN_TOKEN,
-	0x02, 0x00, 0x00, 0x00, // ZEROFS_SECTOR_POINTER
-	0x00, 0x00, 0x00, 0x00, // ZEROFS_OFFSET_POINTER
-};
-
-static uint32_t sector_pointer;
-static uint16_t offset_pointer;
+static uint32_t _index;
 
 uint8_t zerofs_init(void)
 {
@@ -38,39 +30,40 @@ uint8_t zerofs_init(void)
 	if (res)
 		return RES_DISK_NOINIT;
 
+	_index = ZEROFS_DEFAULT_INDEX;
+
 	return 0;
 }
 
 uint8_t zerofs_mount(void)
 {
 	uint8_t res;
-	uint8_t data[32];
+	uint64_t header;
+	uint32_t sector;
+	uint32_t token;
+	uint16_t offset;
 
-	sector_pointer = 0;
-	offset_pointer = 0;
+	_index = 0;
 
-	// read info sector.
-	res = disk_readp(data, ZEROFS_INFO_SECTOR_INDEX, 0, 32);
+	// read zerofs header.
+	res = disk_readp((uint8_t *) &header, ZEROFS_INFO_SECTOR_INDEX, 0, 8);
 	if (res)
 		return res;
 
-	if (data[0] != ZEROFS_SIGN_TOKEN) {
+	token = (uint32_t) header;
+	if (token != ZEROFS_SIGN_TOKEN) {
 		// token dose not match.
 		return RES_TOKEN_MISMATCH;
 	}
 
-	sector_pointer = (uint32_t) data[1];
-	sector_pointer |= (uint32_t) data[2] << 8;
-	sector_pointer |= (uint32_t) data[3] << 16;
-	sector_pointer |= (uint32_t) data[4] << 24;
+	_index = (uint32_t) (header >> 32);
+	sector = (_index / 512) + ZEROFS_DATA_SECTOR_START;
+	offset = _index % 512;
 
-	if (sector_pointer > ZEROFS_DATA_SECTOR_END || sector_pointer < ZEROFS_DATA_SECTOR_START)
+	if (sector> ZEROFS_DATA_SECTOR_END || sector < ZEROFS_DATA_SECTOR_START)
 		return RES_SECTOR_OUT_OF_RANGE;
 
-	offset_pointer = (uint16_t) data[5];
-	offset_pointer |= (uint16_t) data[6] << 8;
-
-	if (offset_pointer > 512)
+	if (offset> 512)
 		return RES_OFFSET_OUT_OF_RANGE;
 
 	return 0;
@@ -79,19 +72,15 @@ uint8_t zerofs_mount(void)
 uint8_t zerofs_create(void)
 {
 	uint8_t res;
-	uint16_t i;
-	uint8_t data[512];
+	uint64_t header;
 
-	for (i = 0; i < ZEROFS_INFO_SECTOR_LENGTH; i++)
-		data[i] = pgm_read_byte(&(ZEROFS_INFO_SECTOR_CONTENT[i]));
-	for (; i < 512; i++)
-		data[i] = 0x00;
+	header = (uint64_t) _index << 32 | ZEROFS_SIGN_TOKEN;
 
 	res = disk_writep(0, ZEROFS_INFO_SECTOR_INDEX);
 	if (res)
 		return res;
 
-	res = disk_writep(data, 512);
+	res = disk_writep((uint8_t *) &header, 8);
 	if (res)
 		return res;
 
@@ -168,6 +157,27 @@ uint8_t zerofs_write(char * data, uint32_t index, uint8_t count)
 	}
 
 	return 0;
+}
+
+uint8_t zerofs_append(char * data, uint8_t count)
+{
+	uint8_t res;
+	uint32_t sector;
+
+	res = zerofs_write(data, _index, count);
+	if (res)
+		return res;
+
+	_index += count;
+
+	sector = (_index / 512) + ZEROFS_DATA_SECTOR_START;
+
+	if (sector > ZEROFS_DATA_SECTOR_END || sector < ZEROFS_DATA_SECTOR_START)
+		_index = ZEROFS_DEFAULT_INDEX;
+
+	res = zerofs_create();
+
+	return res;
 }
 
 uint8_t zerofs_print(uint32_t sector)

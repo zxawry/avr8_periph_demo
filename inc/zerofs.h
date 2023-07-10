@@ -13,6 +13,7 @@ uint8_t zerofs_read(char * data, uint32_t index, uint8_t count);
 //uint8_t zerofs_read(char * data, uint32_t sector, uint16_t offset, uint8_t count);
 uint8_t zerofs_write(char * data, uint32_t index, uint8_t count);
 //uint8_t zerofs_write(char * data, uint32_t sector, uint16_t offset, uint8_t count);
+uint8_t zerofs_append(char * data, uint8_t count);
 uint8_t zerofs_print(uint32_t sector);
 
 #endif

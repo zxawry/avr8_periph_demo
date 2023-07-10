@@ -64,9 +64,15 @@ int main(void)
 				p = buffer + 1;
 				while (*++p != ' ');
 				*p++ = 0; // NULL
-				put_dump((uint8_t *) p, 128);
+				put_dump(p, 128);
 				i = atol(buffer + 2);
 				res = zerofs_write(p, i, strlen(p));
+				put_dump(&res, 1);
+				break;
+			case 'a':
+				p = buffer + 2;
+				put_dump(p, 128);
+				res = zerofs_append(p, strlen(p));
 				put_dump(&res, 1);
 				break;
 			case 's':
